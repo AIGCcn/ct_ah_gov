@@ -30,6 +30,6 @@ as $$
     1 - (documents.embedding <=> query_embedding) as similarity
   from documents
   where 1 - (documents.embedding <=> query_embedding) > match_threshold
-  order by similarity descending
+  order by similarity DESC
   limit match_count;
 $$;

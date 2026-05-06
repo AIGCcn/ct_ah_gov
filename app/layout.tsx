@@ -14,8 +14,8 @@ const figtree = Figtree({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata: Metadata = {
   title: {
-    default: '安徽广电文旅政咨询智能体',
-    template: `%s - 安徽广电文旅政咨询智能体`
+    default: '安徽广电文旅政策咨询智能体',
+    template: `%s - 安徽广电文旅政策咨询智能体`
   },
   description: '由安徽广电AIGC实验室与合肥生成式人工智能开发的专业咨询智能体。',
   themeColor: [

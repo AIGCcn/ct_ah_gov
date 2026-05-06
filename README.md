@@ -1,84 +1,191 @@
-<a href="https://chat.vercel.ai/">
-  <img alt="Next.js 13 and app template Router-ready AI chatbot." src="https://chat.vercel.ai/opengraph-image.png" />
-  <h1 align="center">Next.js AI Chatbot</h1>
-</a>
+<h1 align="center">安徽广电文旅政策咨询智能体</h1>
 
 <p align="center">
-  An open-source AI chatbot app template built with Next.js, the Vercel AI SDK, OpenAI, and Supabase Auth and Postgres DB.
+  基于RAG架构的专业政策咨询AI智能体，由安徽广电AIGC实验室与合肥生成式人工智能共同开发。
 </p>
 
 <p align="center">
-  <a href="#features"><strong>Features</strong></a> ·
-  <a href="#model-providers"><strong>Model Providers</strong></a> ·
-  <a href="#deploy-your-own"><strong>Deploy Your Own</strong></a> ·
-  <a href="#running-locally"><strong>Running locally</strong></a> ·
-  <a href="#authors"><strong>Authors</strong></a>
+  <a href="#功能特性"><strong>功能特性</strong></a> ·
+  <a href="#技术架构"><strong>技术架构</strong></a> ·
+  <a href="#本地运行"><strong>本地运行</strong></a> ·
+  <a href="#项目结构"><strong>项目结构</strong></a> ·
+  <a href="#致谢"><strong>致谢</strong></a>
 </p>
 <br/>
 
-## Features
+## 功能特性
 
-- [Next.js](https://nextjs.org) App Router
-- React Server Components (RSCs), Suspense, and Server Actions
-- [Vercel AI SDK](https://sdk.vercel.ai/docs) for streaming chat UI
-- Support for OpenAI (default), Anthropic, Hugging Face, or custom AI chat models and/or LangChain
-- Edge runtime-ready
-- [shadcn/ui](https://ui.shadcn.com)
-  - Styling with [Tailwind CSS](https://tailwindcss.com)
-  - [Radix UI](https://radix-ui.com) for headless component primitives
-  - Icons from [Phosphor Icons](https://phosphoricons.com)
-- Chat History with [Supabase Postgres DB](https://supabase.com)
-- [Supabase Auth](https://supabase.com/auth) for authentication
+- **RAG检索增强生成** — 基于上传的政策文档进行精准问答，AI仅依据知识库内容回答，避免幻觉
+- **文档上传与向量化** — 支持上传政策文件，自动分块、生成嵌入向量并存入向量数据库
+- **语义相似度搜索** — 使用pgvector进行向量相似度匹配，召回最相关的政策片段
+- **流式对话** — 基于Vercel AI SDK实现流式响应，实时生成回答
+- **用户认证** — 基于Supabase Auth的完整用户认证系统（支持GitHub OAuth）
+- **聊天历史** — 对话记录持久化存储，支持历史会话管理
+- **深色模式** — 支持亮色/暗色主题切换
+- **响应式设计** — 适配桌面端与移动端
 
-## Model Providers
+## 技术架构
 
-This template ships with OpenAI `gpt-3.5-turbo` as the default. However, thanks to the [Vercel AI SDK](https://sdk.vercel.ai/docs), you can switch LLM providers to [Anthropic](https://anthropic.com), [Hugging Face](https://huggingface.co), or using [LangChain](https://js.langchain.com) with just a few lines of code.
+### 技术栈
 
-## Deploy Your Own
+| 类别 | 技术 |
+|------|------|
+| 前端框架 | [Next.js 13](https://nextjs.org) (App Router) |
+| AI SDK | [Vercel AI SDK](https://sdk.vercel.ai/docs) |
+| 大语言模型 | [MiniMax](https://api.minimaxi.com) `abab6.5s-chat` |
+| 嵌入模型 | MiniMax `embo-01` (1536维) |
+| 数据库 | [Supabase Postgres](https://supabase.com) + [pgvector](https://github.com/pgvector/pgvector) |
+| 认证 | [Supabase Auth](https://supabase.com/auth) |
+| UI组件 | [shadcn/ui](https://ui.shadcn.com) + [Radix UI](https://radix-ui.com) |
+| 样式 | [Tailwind CSS](https://tailwindcss.com) |
+| 语言 | TypeScript |
 
-You can deploy your own version of the Next.js AI Chatbot to Vercel with one click:
+### RAG工作流程
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fsupabase-community%2Fvercel-ai-chatbot&env=OPENAI_API_KEY&envDescription=You%20must%20first%20activate%20a%20Billing%20Account%20here%3A%20https%3A%2F%2Fplatform.openai.com%2Faccount%2Fbilling%2Foverview&envLink=https%3A%2F%2Fplatform.openai.com%2Faccount%2Fapi-keys&project-name=vercel-ai-chatbot-with-supabase&repository-name=vercel-ai-chatbot-with-supabase&integration-ids=oac_VqOgBHqhEoFTPzGkPd7L0iH6&external-id=https%3A%2F%2Fgithub.com%2Fsupabase-community%2Fvercel-ai-chatbot%2Ftree%2Fmain)
+```
+用户提问
+  │
+  ▼
+┌─────────────────────────┐
+│  1. 生成查询嵌入向量      │  MiniMax embo-01
+│     (Query Embedding)    │
+└───────────┬─────────────┘
+            │
+            ▼
+┌─────────────────────────┐
+│  2. 向量相似度搜索        │  Supabase pgvector
+│     (match_documents)    │  阈值: 0.78, Top-5
+└───────────┬─────────────┘
+            │
+            ▼
+┌─────────────────────────┐
+│  3. 构建增强提示          │  System Prompt + 检索上下文
+│     (Augmented Prompt)   │
+└───────────┬─────────────┘
+            │
+            ▼
+┌─────────────────────────┐
+│  4. 流式生成回答          │  MiniMax abab6.5s-chat
+│     (Stream Response)    │
+└─────────────────────────┘
+```
 
-### Set up GitHub OAuth
+### 文档上传流程
 
-This demo uses GitHub Oauth. Follow the [GitHub OAuth setup steps](https://supabase.com/docs/guides/auth/social-login/auth-github) on your Supabase project.
+```
+上传文件 → 文本提取 → 分块(1000字符) → 生成嵌入向量 → 存入Supabase documents表
+```
 
-### Configure your site url
+## 本地运行
 
-In the Supabase Dashboard, navigate to [Auth > URL configuration](https://app.supabase.com/project/_/auth/url-configuration) and set your Vercel URL as the site URL.
+### 环境要求
 
-## Running locally
+- Node.js 18+
+- pnpm
+- [Supabase CLI](https://supabase.com/docs/guides/cli)
 
-You will need to use the environment variables [defined in `.env.example`](.env.example) to run Next.js AI Chatbot. It's recommended you use [Vercel Environment Variables](https://vercel.com/docs/concepts/projects/environment-variables) for this, but a `.env` file is all that is necessary.
+### 配置环境变量
 
-> Note: You should not commit your `.env` file or it will expose secrets that will allow others to control access to your various OpenAI and authentication provider accounts.
-
-Copy the `.env.example` file and populate the required env vars:
+复制 `.env.example` 文件并填写必要的环境变量：
 
 ```bash
 cp .env.example .env
 ```
 
-[Install the Supabase CLI](https://supabase.com/docs/guides/cli) and start the local Supabase stack:
+需要配置以下环境变量：
+
+| 变量名 | 说明 |
+|--------|------|
+| `Model_API_KEY` | MiniMax API密钥（从 [MiniMax开放平台](https://api.minimaxi.com) 获取） |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase项目URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase匿名密钥 |
+| `NEXT_PUBLIC_AUTH_GITHUB` | 是否启用GitHub OAuth（`true`/`false`） |
+| `AUTH_GITHUB_ID` | GitHub OAuth App ID |
+| `AUTH_GITHUB_SECRET` | GitHub OAuth App Secret |
+
+> ⚠️ 注意：请勿将 `.env` 文件提交到代码仓库，以免泄露密钥。
+
+### 启动Supabase
 
 ```bash
 npm install supabase --save-dev
 npx supabase start
 ```
 
-Install the local dependencies and start dev mode:
+### 安装依赖并启动开发服务器
 
 ```bash
 pnpm install
 pnpm dev
 ```
 
-Your app template should now be running on [localhost:3000](http://localhost:3000/).
+应用将在 [localhost:3000](http://localhost:3000/) 运行。
 
-## Authors
+### 配置GitHub OAuth（可选）
 
-This library is created by [Vercel](https://vercel.com) and [Next.js](https://nextjs.org) team members, with contributions from:
+如果启用GitHub OAuth登录，请按照 [Supabase GitHub OAuth设置指南](https://supabase.com/docs/guides/auth/social-login/auth-github) 进行配置，并在Supabase Dashboard的 [Auth > URL configuration](https://app.supabase.com/project/_/auth/url-configuration) 中设置站点URL。
+
+## 项目结构
+
+```
+Consulting/
+├── app/
+│   ├── api/
+│   │   ├── auth/callback/     # 认证回调
+│   │   ├── chat/route.ts      # 聊天API（RAG核心逻辑）
+│   │   └── upload/route.ts    # 文档上传API（向量化入库）
+│   ├── chat/[id]/             # 聊天详情页
+│   ├── share/[id]/            # 分享页
+│   ├── sign-in/               # 登录页
+│   ├── sign-up/               # 注册页
+│   ├── actions.ts             # Server Actions（聊天CRUD）
+│   ├── layout.tsx             # 根布局
+│   └── page.tsx               # 首页
+├── components/
+│   ├── ui/                    # shadcn/ui 基础组件
+│   ├── chat.tsx               # 聊天主组件
+│   ├── chat-panel.tsx         # 聊天面板
+│   ├── chat-message.tsx       # 消息气泡
+│   ├── empty-screen.tsx       # 欢迎页（含示例问题）
+│   ├── header.tsx             # 顶部导航
+│   ├── sidebar.tsx            # 侧边栏（聊天历史）
+│   └── ...                    # 其他组件
+├── lib/
+│   ├── hooks/                 # 自定义Hooks
+│   ├── types.ts               # 类型定义
+│   └── utils.ts               # 工具函数
+├── supabase/
+│   ├── migrations/
+│   │   ├── 20230707053030_init.sql       # 聊天表初始化
+│   │   └── match_documents.sql           # 文档表 + 向量匹配函数
+│   ├── config.toml            # Supabase本地配置
+│   └── seed.sql               # 种子数据
+├── auth.ts                    # 认证工具函数
+├── middleware.ts               # 中间件（会话校验）
+└── package.json
+```
+
+### 关键文件说明
+
+- [route.ts](app/api/chat/route.ts) — RAG核心逻辑：查询嵌入 → 向量搜索 → 上下文注入 → 流式生成
+- [upload/route.ts](app/api/upload/route.ts) — 文档上传：文件解析 → 分块 → 嵌入 → 存储
+- [match_documents.sql](supabase/migrations/match_documents.sql) — pgvector向量匹配函数定义
+- [empty-screen.tsx](components/empty-screen.tsx) — 欢迎页面，包含政策咨询示例问题
+
+## 政策文档
+
+项目包含以下政策原文（位于 `政策原文/` 目录）：
+
+- 《关于促进微短剧产业发展的若干举措（征求意见稿）》
+- 《关于加快推进广播电视和网络视听产业高质量发展的实施意见》
+- 《文旅与广电深度融合双向赋能工作指引》
+- 《视听文旅融合发展三年行动计划（2026-2028）》
+
+上传这些文档后，智能体即可基于这些政策内容进行专业咨询问答。
+
+## 致谢
+
+本项目基于 [Vercel AI Chatbot](https://github.com/supabase-community/vercel-ai-chatbot) 模板开发，感谢以下贡献者：
 
 - Jared Palmer ([@jaredpalmer](https://twitter.com/jaredpalmer)) - [Vercel](https://vercel.com)
 - Shu Ding ([@shuding\_](https://twitter.com/shuding_)) - [Vercel](https://vercel.com)

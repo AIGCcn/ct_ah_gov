@@ -1,8 +1,11 @@
-import { createGroq } from '@ai-sdk/groq';
+import { createOpenAI } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import { createClient } from '@supabase/supabase-js';
 
-const groq = createGroq({ apiKey: process.env.Model_API_KEY! }); // Use Model_API_KEY from .env
+const minimax = createOpenAI({ 
+  apiKey: process.env.Model_API_KEY!,
+  baseURL: 'https://api.minimaxi.com/v1' 
+});
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -15,14 +18,14 @@ export async function POST(req: Request) {
   // 1. 查询相似文档（RAG）
   let queryEmbedding = [];
   try {
-    const embeddingResponse = await fetch('https://api.openai.com/v1/embeddings', {
+    const embeddingResponse = await fetch('https://api.minimaxi.com/v1/embeddings', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        'Authorization': `Bearer ${process.env.Model_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'text-embedding-3-small',
+        model: 'embo-01',
         input: lastMessage,
       }),
     });
@@ -42,12 +45,12 @@ export async function POST(req: Request) {
 
   // 2. 流式返回
   const result = await streamText({
-    model: groq('llama-3.3-70b-versatile'),
+    model: minimax('abab6.5s-chat'),
     messages: [
       { role: 'system', content: `你是专业咨询智能体，只根据以下资料回答：\n${context}` },
       ...messages
     ],
   });
 
-  return result.toDataStreamResponse();
+  return result.toTextStreamResponse();
 }

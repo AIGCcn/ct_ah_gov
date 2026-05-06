@@ -14,7 +14,7 @@
     "format:check": "prettier --check \"{app,lib,components}**/*.{ts,tsx,mdx}\" --cache"
   },
   "dependencies": {
-    "@ai-sdk/groq": "^3.0.38",
+    "@ai-sdk/openai": "^0.0.14",
     "@hugeicons/core-free-icons": "^4.1.1",
     "@hugeicons/react": "^1.1.6",
     "@radix-ui/react-alert-dialog": "^1.0.4",
@@ -30,7 +30,7 @@
     "@supabase/supabase-js": "^2.105.3",
     "@vercel/analytics": "^1.0.1",
     "@vercel/og": "^0.5.7",
-    "ai": "^2.2.37",
+    "ai": "^3.1.21",
     "class-variance-authority": "^0.6.1",
     "clsx": "^1.2.1",
     "focus-trap-react": "^10.1.1",

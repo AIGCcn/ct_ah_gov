@@ -64,7 +64,7 @@ export async function Header() {
           <span className="ml-2 hidden md:flex">GitHub</span>
         </a>
         <div className={cn(buttonVariants({ variant: 'outline' }), "cursor-default")}>
-          <span className="hidden sm:block">安徽广电文旅政咨询</span>
+          <span className="hidden sm:block">安徽广电文旅政策咨询</span>
         </div>
       </div>
     </header>
