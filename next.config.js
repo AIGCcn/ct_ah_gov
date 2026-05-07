@@ -8,7 +8,7 @@ module.exports = {
   },
   experimental: {
     serverActions: true,
-    serverComponentsExternalPackages: ['pdfjs-dist', 'pdf-parse', '@napi-rs/canvas', 'ws']
+    serverComponentsExternalPackages: ['pdfjs-dist', 'pdf-parse', '@napi-rs/canvas']
   },
   images: {
     remotePatterns: [

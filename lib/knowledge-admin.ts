@@ -3,7 +3,6 @@ import 'server-only'
 import { createHash, randomUUID, timingSafeEqual } from 'crypto'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
-import ws from 'ws'
 
 import { extractKnowledgeText } from '@/lib/knowledge-parser'
 import type {
@@ -21,13 +20,7 @@ const KNOWLEDGE_ADMIN_COOKIE_MAX_AGE = 60 * 60 * 12
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  {
-    realtime: {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      transport: ws as any
-    }
-  }
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
 /** Admin client with service_role key — bypasses RLS for INSERT/DELETE */
