@@ -8,6 +8,7 @@
   <a href="#功能特性"><strong>功能特性</strong></a> ·
   <a href="#技术架构"><strong>技术架构</strong></a> ·
   <a href="#本地运行"><strong>本地运行</strong></a> ·
+  <a href="#vercel-一键部署"><strong>Vercel 部署</strong></a> ·
   <a href="#项目结构"><strong>项目结构</strong></a> ·
   <a href="#致谢"><strong>致谢</strong></a>
 </p>
@@ -18,6 +19,7 @@
 - **RAG检索增强生成** — 基于上传的政策文档进行精准问答，AI仅依据知识库内容回答，避免幻觉
 - **自适应阈值检索** — 首次高阈值（0.78）检索，命中不足时自动降级重试（最低0.50），兼顾精准与召回
 - **上下文截断** — 单条文档限长1500字符，总context限长6000字符，防止无关内容溢出大模型窗口
+- **来源标注** — 每条检索文档自动标注政策文件名，AI回答时引用具体政策来源
 - **知识库管理** — 提供中文知识库管理页，可进行上传、搜索、全文预览、批量删除与重复文件处理
 - **多格式文档上传与向量化** — 支持 `TXT / MD / CSV / JSON / HTML / XML / PDF / DOCX / DOC`，自动提取文本、分块、生成嵌入向量并存入向量数据库
 - **语义相似度搜索** — 使用pgvector进行向量相似度匹配，召回最相关的政策片段
@@ -34,7 +36,7 @@
 | 类别 | 技术 |
 |------|------|
 | 前端框架 | [Next.js 13](https://nextjs.org) (App Router) |
-| AI SDK | [Vercel AI SDK](https://sdk.vercel.ai/docs) |
+| AI SDK | [Vercel AI SDK](https://sdk.vercel.ai/docs) v3 + `@ai-sdk/anthropic` |
 | 大语言模型 | [MiniMax](https://api.minimaxi.com) `MiniMax-M2.7`（Anthropic 兼容端点） |
 | 嵌入模型 | [Supabase gte-small](https://supabase.com/docs/guides/ai) (384维，免费) |
 | 数据库 | [Supabase Postgres](https://supabase.com) + [pgvector](https://github.com/pgvector/pgvector) |
@@ -42,7 +44,8 @@
 | UI组件 | [shadcn/ui](https://ui.shadcn.com) + [Radix UI](https://radix-ui.com) |
 | 样式 | [Tailwind CSS](https://tailwindcss.com) |
 | 文档解析 | [pdf-parse](https://npmjs.com/package/pdf-parse) (PDF) / [mammoth](https://npmjs.com/package/mammoth) (DOCX) / [word-extractor](https://npmjs.com/package/word-extractor) (DOC) |
-| 语言 | TypeScript |
+| 语言 | TypeScript 5.x |
+| 包管理 | pnpm |
 
 ### RAG工作流程
 
@@ -77,7 +80,7 @@
             ▼
 ┌─────────────────────────┐
 │  5. 流式生成回答          │  MiniMax-M2.7
-│     (Stream Response)    │  (Anthropic 兼容端点)
+│     (Stream Response)    │  (@ai-sdk/anthropic 兼容端点)
 └─────────────────────────┘
 ```
 
@@ -100,8 +103,8 @@
 
 ### 环境要求
 
-- Node.js 18+
-- npm
+- Node.js 18+（推荐 20+，Node.js 18 已被 Supabase SDK 标记为 deprecated）
+- pnpm（项目使用 pnpm 管理依赖）
 - [Supabase CLI](https://supabase.com/docs/guides/cli)
 
 ### 配置环境变量
@@ -109,36 +112,29 @@
 复制 `.env.example` 文件并填写必要的环境变量：
 
 ```bash
-cp .env.example .env
+cp .env.example .env.local
 ```
 
 需要配置以下环境变量：
 
 | 变量名 | 说明 |
 |--------|------|
-| `Model_API_KEY` | MiniMax API密钥（从 [MiniMax开放平台](https://api.minimaxi.com) 获取） |
+| `Model_API_KEY` | MiniMax API密钥（从 [MiniMax开放平台](https://api.minimaxi.com) 获取，`sk-cp-` 前缀 Token Plan Key） |
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase项目URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase匿名密钥 |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase服务端密钥（绕过RLS，用于知识库写入） |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase服务端密钥（绕过RLS，用于知识库写入和RPC查询） |
 | `NEXT_PUBLIC_AUTH_GITHUB` | 是否启用GitHub OAuth（`true`/`false`） |
 | `AUTH_GITHUB_ID` | GitHub OAuth App ID |
 | `AUTH_GITHUB_SECRET` | GitHub OAuth App Secret |
 | `KNOWLEDGE_ADMIN_SECRET` | 知识库管理会话签名密钥，建议配置为随机长字符串 |
 
-> ⚠️ 注意：请勿将 `.env` 文件提交到代码仓库，以免泄露密钥。
-
-### 启动Supabase
-
-```bash
-npm install supabase --save-dev
-npx supabase start
-```
+> ⚠️ 注意：请勿将 `.env.local` 文件提交到代码仓库，以免泄露密钥。
 
 ### 安装依赖并启动开发服务器
 
 ```bash
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 应用将在 [localhost:3000](http://localhost:3000/) 运行。
@@ -146,6 +142,49 @@ npm run dev
 ### 配置GitHub OAuth（可选）
 
 如果启用GitHub OAuth登录，请按照 [Supabase GitHub OAuth设置指南](https://supabase.com/docs/guides/auth/social-login/auth-github) 进行配置，并在Supabase Dashboard的 [Auth > URL configuration](https://app.supabase.com/project/_/auth/url-configuration) 中设置站点URL。
+
+### 配置Supabase Edge Function（嵌入生成）
+
+项目使用 Supabase Edge Function 生成文本嵌入向量，需手动部署：
+
+1. 在 Supabase Dashboard 创建 `embed` Edge Function
+2. 使用 `Supabase.ai.Session('gte-small')` 生成 384 维向量
+3. 调用方式：`POST {SUPABASE_URL}/functions/v1/embed` + `apikey` 头 + `{ input: "文本" }`
+
+### 配置数据库（向量匹配函数）
+
+确保 `documents` 表的 `embedding` 列类型为 `vector(384)`，并部署 `match_documents` 函数。详见 [supabase/migrations/](supabase/migrations/) 目录下的 SQL 文件。
+
+## Vercel 一键部署
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/AIGCcn/ct_ah_gov)
+
+### 部署前准备
+
+1. **Supabase 项目**：已创建并配置好 `documents` 表（`embedding` 列为 `vector(384)`）和 `match_documents` 函数
+2. **Supabase Edge Function**：已部署 `embed` 函数
+3. **MiniMax API Key**：已获取 `sk-cp-` 前缀的 Token Plan Key
+4. **GitHub OAuth**（可选）：已在 Supabase Dashboard 配置好 GitHub Provider
+
+### 部署步骤
+
+1. 点击上方 **Deploy with Vercel** 按钮
+2. 输入仓库地址 `https://github.com/AIGCcn/ct_ah_gov`
+3. 在 Vercel 配置页面填入所有环境变量（参考上表）
+4. 点击 Deploy
+
+### Vercel 环境变量清单
+
+| 变量名 | 必填 | 说明 |
+|--------|------|------|
+| `Model_API_KEY` | ✅ | MiniMax Token Plan Key |
+| `NEXT_PUBLIC_SUPABASE_URL` | ✅ | Supabase 项目 URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ | Supabase 匿名密钥 |
+| `SUPABASE_SERVICE_ROLE_KEY` | ✅ | Supabase 服务端密钥 |
+| `NEXT_PUBLIC_AUTH_GITHUB` | ❌ | 是否启用 GitHub OAuth |
+| `AUTH_GITHUB_ID` | ❌ | GitHub OAuth App ID |
+| `AUTH_GITHUB_SECRET` | ❌ | GitHub OAuth App Secret |
+| `KNOWLEDGE_ADMIN_SECRET` | ❌ | 知识库管理密钥（不配置则使用默认值） |
 
 ## 项目结构
 
@@ -211,7 +250,7 @@ Consulting/
 - [knowledge-dashboard.tsx](components/knowledge-dashboard.tsx) — 知识文件上传、搜索、预览与批量管理界面
 - [knowledge-admin.ts](lib/knowledge-admin.ts) — 知识文件聚合、全文读取、搜索、删除与导入逻辑
 - [knowledge-parser.ts](lib/knowledge-parser.ts) — PDF、DOCX、DOC 与文本文件解析（PDF 使用动态 import 避免 SSR 报错）
-- [user-menu.tsx](components/user-menu.tsx) — 用户下拉菜单（密码修改、退出登录，已移除项目主页链接）
+- [user-menu.tsx](components/user-menu.tsx) — 用户下拉菜单（密码修改、退出登录）
 - [empty-screen.tsx](components/empty-screen.tsx) — 欢迎页面，含政策文档相关示例问题
 - [header.tsx](components/header.tsx) — 顶部导航栏，组合侧边栏触发器、用户菜单、知识库入口
 
@@ -232,9 +271,15 @@ Consulting/
 ## 注意事项
 
 - **禁用 Edge Runtime**：页面不得声明 `export const runtime = 'edge'`，否则 `cookies()` / `requestAsyncStorage` 不可用会导致崩溃
-- **`next.config.js` 特殊配置**：`serverComponentsExternalPackages` 排除了 `pdfjs-dist` / `pdf-parse` / `@napi-rs/canvas` 以避免 ESM 打包错误；客户端 webpack alias 将这些模块设为 `false`，请勿移除
+- **`next.config.js` 特殊配置**：
+  - `serverComponentsExternalPackages` 排除了 `pdfjs-dist` / `pdf-parse` / `@napi-rs/canvas` / `ws` 以避免 ESM 打包错误
+  - 客户端 webpack alias 将这些模块设为 `false`，请勿移除
+  - `eslint.ignoreDuringBuilds: true` 绕过 pnpm 环境下 tailwindcss ESLint 插件解析问题
 - **`pdf-parse` 动态导入**：`knowledge-parser.ts` 中 PDF 解析使用 `await import('pdf-parse')`，不可改为顶层静态 import（会触发 `DOMMatrix is not defined`）
 - **RLS 绕过**：`documents` 表启用了 RLS，所有写入操作（INSERT/DELETE）和 RPC 查询使用 `service_role` key 的 `supabaseAdmin` 客户端
+- **tsconfig.json**：`moduleResolution` 设置为 `"bundler"` 以正确解析 `ai/react` 等包的 exports 字段
+- **MiniMax Token Plan Key**：`sk-cp-` 前缀密钥仅支持 Anthropic 兼容端点调用 Chat 模型（MiniMax-M2.7），不支持原生 Embeddings API
+- **pnpm lockfile 同步**：每次修改 `package.json` 后必须运行 `pnpm install` 更新 `pnpm-lock.yaml`，否则 Vercel CI 会报 `ERR_PNPM_OUTDATED_LOCKFILE`
 - [match_documents.sql](supabase/migrations/match_documents.sql) — pgvector向量匹配函数定义
 
 ## 政策文档
