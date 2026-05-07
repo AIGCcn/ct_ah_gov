@@ -33,7 +33,7 @@ export function ChatMessageActions({
     >
       <Button variant="ghost" size="icon" onClick={onCopy}>
         {isCopied ? <IconCheck /> : <IconCopy />}
-        <span className="sr-only">Copy message</span>
+        <span className="sr-only">复制消息</span>
       </Button>
     </div>
   )

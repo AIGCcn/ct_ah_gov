@@ -16,7 +16,8 @@
 ## 功能特性
 
 - **RAG检索增强生成** — 基于上传的政策文档进行精准问答，AI仅依据知识库内容回答，避免幻觉
-- **文档上传与向量化** — 支持上传政策文件，自动分块、生成嵌入向量并存入向量数据库
+- **知识库管理** — 提供中文知识库管理页，可进行上传、搜索、全文预览、批量删除与重复文件处理
+- **多格式文档上传与向量化** — 支持 `TXT / MD / CSV / JSON / HTML / XML / PDF / DOCX / DOC`，自动提取文本、分块、生成嵌入向量并存入向量数据库
 - **语义相似度搜索** — 使用pgvector进行向量相似度匹配，召回最相关的政策片段
 - **流式对话** — 基于Vercel AI SDK实现流式响应，实时生成回答
 - **用户认证** — 基于Supabase Auth的完整用户认证系统（支持GitHub OAuth）
@@ -73,15 +74,24 @@
 ### 文档上传流程
 
 ```
-上传文件 → 文本提取 → 分块(1000字符) → 生成嵌入向量 → 存入Supabase documents表
+进入知识库管理页 → 上传文件 → 文本提取 → 分块(1000字符) → 生成嵌入向量 → 存入Supabase documents表
 ```
+
+### 知识库管理能力
+
+- 中文管理界面：统一处理知识文件上传、查看与清理
+- 自动刷新详情：上传后立即刷新列表，显示文件类型、大小、导入时间、字符数与分块数
+- 片段搜索：按文件名或知识内容关键词检索已入库片段
+- 全文预览：查看单个知识文件的完整入库文本
+- 批量删除：支持多选后批量清理知识文件
+- 重复文件策略：可选择覆盖同名旧文件，或保留重复文件为独立记录
 
 ## 本地运行
 
 ### 环境要求
 
 - Node.js 18+
-- pnpm
+- npm
 - [Supabase CLI](https://supabase.com/docs/guides/cli)
 
 ### 配置环境变量
@@ -102,6 +112,7 @@ cp .env.example .env
 | `NEXT_PUBLIC_AUTH_GITHUB` | 是否启用GitHub OAuth（`true`/`false`） |
 | `AUTH_GITHUB_ID` | GitHub OAuth App ID |
 | `AUTH_GITHUB_SECRET` | GitHub OAuth App Secret |
+| `KNOWLEDGE_ADMIN_SECRET` | 知识库管理会话签名密钥，建议配置为随机长字符串 |
 
 > ⚠️ 注意：请勿将 `.env` 文件提交到代码仓库，以免泄露密钥。
 
@@ -115,8 +126,8 @@ npx supabase start
 ### 安装依赖并启动开发服务器
 
 ```bash
-pnpm install
-pnpm dev
+npm install
+npm run dev
 ```
 
 应用将在 [localhost:3000](http://localhost:3000/) 运行。
@@ -133,8 +144,10 @@ Consulting/
 │   ├── api/
 │   │   ├── auth/callback/     # 认证回调
 │   │   ├── chat/route.ts      # 聊天API（RAG核心逻辑）
+│   │   ├── knowledge/         # 知识库管理API（搜索、预览、删除、认证）
 │   │   └── upload/route.ts    # 文档上传API（向量化入库）
 │   ├── chat/[id]/             # 聊天详情页
+│   ├── knowledge/             # 知识库管理页
 │   ├── share/[id]/            # 分享页
 │   ├── sign-in/               # 登录页
 │   ├── sign-up/               # 注册页
@@ -152,6 +165,9 @@ Consulting/
 │   └── ...                    # 其他组件
 ├── lib/
 │   ├── hooks/                 # 自定义Hooks
+│   ├── knowledge-admin.ts     # 知识库服务层
+│   ├── knowledge-parser.ts    # PDF/DOCX/DOC 等文本提取
+│   ├── knowledge-types.ts     # 知识库类型定义
 │   ├── types.ts               # 类型定义
 │   └── utils.ts               # 工具函数
 ├── supabase/
@@ -169,6 +185,10 @@ Consulting/
 
 - [route.ts](app/api/chat/route.ts) — RAG核心逻辑：查询嵌入 → 向量搜索 → 上下文注入 → 流式生成
 - [upload/route.ts](app/api/upload/route.ts) — 文档上传：文件解析 → 分块 → 嵌入 → 存储
+- [page.tsx](app/knowledge/page.tsx) — 知识库管理页入口
+- [knowledge-dashboard.tsx](components/knowledge-dashboard.tsx) — 知识文件上传、搜索、预览与批量管理界面
+- [knowledge-admin.ts](lib/knowledge-admin.ts) — 知识文件聚合、全文读取、搜索、删除与导入逻辑
+- [knowledge-parser.ts](lib/knowledge-parser.ts) — PDF、DOCX、DOC 与文本文件解析
 - [match_documents.sql](supabase/migrations/match_documents.sql) — pgvector向量匹配函数定义
 - [empty-screen.tsx](components/empty-screen.tsx) — 欢迎页面，包含政策咨询示例问题
 

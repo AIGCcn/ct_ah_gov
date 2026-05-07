@@ -2,12 +2,8 @@ import 'server-only'
 import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 
-export const auth = async ({
-  cookieStore
-}: {
-  cookieStore: ReturnType<typeof cookies>
-}) => {
-  // Create a Supabase client configured to use cookies
+export const auth = async () => {
+  const cookieStore = cookies()
   const supabase = createServerComponentClient({
     cookies: () => cookieStore
   })

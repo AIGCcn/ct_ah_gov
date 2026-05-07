@@ -51,7 +51,7 @@ export function LoginForm({
     })
 
     if (!error && !data.session)
-      toast.success('Check your inbox to confirm your email address!')
+      toast.success('请查看邮箱确认您的账号！')
     return error
   }
 
@@ -76,7 +76,7 @@ export function LoginForm({
       <form onSubmit={handleOnSubmit}>
         <fieldset className="flex flex-col gap-y-4">
           <div className="flex flex-col gap-y-1">
-            <Label>Email</Label>
+            <Label>邮箱</Label>
             <Input
               name="email"
               type="email"
@@ -90,7 +90,7 @@ export function LoginForm({
             />
           </div>
           <div className="flex flex-col gap-y-1">
-            <Label>Password</Label>
+            <Label>密码</Label>
             <Input
               name="password"
               type="password"
@@ -108,21 +108,21 @@ export function LoginForm({
         <div className="mt-4 flex items-center">
           <Button disabled={isLoading}>
             {isLoading && <IconSpinner className="mr-2 animate-spin" />}
-            {action === 'sign-in' ? 'Sign In' : 'Sign Up'}
+            {action === 'sign-in' ? '登录' : '注册'}
           </Button>
           <p className="ml-4">
             {action === 'sign-in' ? (
               <>
-                Don&apos;t have an account?{' '}
+                还没有账号？{' '}
                 <Link href="/sign-up" className="font-medium">
-                  Sign Up
+                  注册
                 </Link>
               </>
             ) : (
               <>
-                Already have an account?{' '}
+                已有账号？{' '}
                 <Link href="/sign-in" className="font-medium">
-                  Sign In
+                  登录
                 </Link>
               </>
             )}

@@ -4,7 +4,6 @@ import { notFound, redirect } from 'next/navigation'
 import { auth } from '@/auth'
 import { getChat } from '@/app/actions'
 import { Chat } from '@/components/chat'
-import { cookies } from 'next/headers'
 
 export const runtime = 'edge'
 export const preferredRegion = 'home'
@@ -18,8 +17,7 @@ export interface ChatPageProps {
 export async function generateMetadata({
   params
 }: ChatPageProps): Promise<Metadata> {
-  const cookieStore = cookies()
-  const session = await auth({ cookieStore })
+  const session = await auth()
 
   if (!session?.user) {
     return {}
@@ -27,13 +25,12 @@ export async function generateMetadata({
 
   const chat = await getChat(params.id)
   return {
-    title: chat?.title.toString().slice(0, 50) ?? 'Chat'
+    title: chat?.title.toString().slice(0, 50) ?? '对话'
   }
 }
 
 export default async function ChatPage({ params }: ChatPageProps) {
-  const cookieStore = cookies()
-  const session = await auth({ cookieStore })
+  const session = await auth()
 
   if (!session?.user) {
     redirect(`/sign-in?next=/chat/${params.id}`)

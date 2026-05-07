@@ -35,7 +35,7 @@ export function SidebarItem({ chat, children }: SidebarItemProps) {
             >
               <IconUsers className="mr-2" />
             </TooltipTrigger>
-            <TooltipContent>This is a shared chat.</TooltipContent>
+            <TooltipContent>这是一个共享对话</TooltipContent>
           </Tooltip>
         ) : (
           <IconMessage className="mr-2" />

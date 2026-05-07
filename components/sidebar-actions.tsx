@@ -58,14 +58,14 @@ export function SidebarActions({
 
   const copyShareLink = React.useCallback(async (chat: Chat) => {
     if (!chat.sharePath) {
-      return toast.error('Could not copy share link to clipboard')
+      return toast.error('无法复制分享链接')
     }
 
     const url = new URL(window.location.href)
     url.pathname = chat.sharePath
     navigator.clipboard.writeText(url.toString())
     setShareDialogOpen(false)
-    toast.success('Share link copied to clipboard', {
+    toast.success('分享链接已复制到剪贴板', {
       style: {
         borderRadius: '10px',
         background: '#333',
@@ -90,10 +90,10 @@ export function SidebarActions({
               onClick={() => setShareDialogOpen(true)}
             >
               <IconShare />
-              <span className="sr-only">Share</span>
+              <span className="sr-only">分享</span>
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Share chat</TooltipContent>
+          <TooltipContent>分享对话</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -104,24 +104,24 @@ export function SidebarActions({
               onClick={() => setDeleteDialogOpen(true)}
             >
               <IconTrash />
-              <span className="sr-only">Delete</span>
+              <span className="sr-only">删除</span>
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Delete chat</TooltipContent>
+          <TooltipContent>删除对话</TooltipContent>
         </Tooltip>
       </div>
       <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Share link to chat</DialogTitle>
+            <DialogTitle>分享对话链接</DialogTitle>
             <DialogDescription>
-              Anyone with the URL will be able to view the shared chat.
+              任何拥有此链接的人都可以查看该共享对话。
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-1 rounded-md border p-4 text-sm">
             <div className="font-medium">{chat.title}</div>
             <div className="text-muted-foreground">
-              {formatDate(chat.createdAt)} · {chat.messages.length} messages
+              {formatDate(chat.createdAt)} · {chat.messages.length} 条消息
             </div>
           </div>
           <DialogFooter className="items-center">
@@ -162,10 +162,10 @@ export function SidebarActions({
               {isSharePending ? (
                 <>
                   <IconSpinner className="mr-2 animate-spin" />
-                  Copying...
+                  复制中...
                 </>
               ) : (
-                <>Copy link</>
+                <>复制链接</>
               )}
             </Button>
           </DialogFooter>
@@ -174,15 +174,14 @@ export function SidebarActions({
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogTitle>确定要删除此对话吗？</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete your chat message and remove your
-              data from our servers.
+              此操作将永久删除该对话消息，且无法恢复。
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isRemovePending}>
-              Cancel
+              取消
             </AlertDialogCancel>
             <AlertDialogAction
               disabled={isRemovePending}
@@ -202,12 +201,12 @@ export function SidebarActions({
                   setDeleteDialogOpen(false)
                   router.refresh()
                   router.push('/')
-                  toast.success('Chat deleted')
+                  toast.success('对话已删除')
                 })
               }}
             >
               {isRemovePending && <IconSpinner className="mr-2 animate-spin" />}
-              Delete
+              删除
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

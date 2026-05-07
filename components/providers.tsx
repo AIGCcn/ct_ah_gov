@@ -2,11 +2,10 @@
 
 import * as React from 'react'
 import { ThemeProvider as NextThemesProvider } from 'next-themes'
-import { ThemeProviderProps } from 'next-themes/dist/types'
 
 import { TooltipProvider } from '@/components/ui/tooltip'
 
-export function Providers({ children, ...props }: ThemeProviderProps) {
+export function Providers({ children, ...props }: React.ComponentProps<typeof NextThemesProvider>) {
   return (
     <NextThemesProvider {...props}>
       <TooltipProvider>{children}</TooltipProvider>

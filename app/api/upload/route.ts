@@ -1,39 +1,41 @@
-import { createClient } from '@supabase/supabase-js';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import {
+  ingestKnowledgeFile,
+  isKnowledgeAdminAuthorized,
+  verifyKnowledgePassword
+} from '@/lib/knowledge-admin'
+import type { KnowledgeDuplicateStrategy } from '@/lib/knowledge-types'
 
 export async function POST(req: NextRequest) {
-  const formData = await req.formData();
-  const file = formData.get('file') as File;
-  const text = await file.text();
+  const headerPassword = req.headers.get('x-knowledge-password')
+  const isAuthorized =
+    isKnowledgeAdminAuthorized(req.cookies) ||
+    (!!headerPassword && verifyKnowledgePassword(headerPassword))
 
-  // 简单分块（生产环境可用 LangChain）
-  const chunks = text.match(/.{1,1000}/g) || [];
-
-  for (const chunk of chunks) {
-    const embeddingResponse = await fetch('https://api.minimaxi.com/v1/embeddings', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.Model_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'embo-01',
-        input: chunk,
-      }),
-    });
-    const { data } = await embeddingResponse.json();
-
-    await supabase.from('documents').insert({
-      content: chunk,
-      embedding: data[0].embedding,
-      metadata: { filename: file.name }
-    });
+  if (!isAuthorized) {
+    return NextResponse.json(
+      { error: '请先通过知识库管理密码验证' },
+      { status: 401 }
+    )
   }
 
-  return NextResponse.json({ success: true });
+  const formData = await req.formData()
+  const file = formData.get('file')
+  const duplicateStrategyValue = formData.get('duplicateStrategy')
+  const duplicateStrategy: KnowledgeDuplicateStrategy =
+    duplicateStrategyValue === 'replace' ? 'replace' : 'keep'
+
+  if (!(file instanceof File)) {
+    return NextResponse.json({ error: '请选择要上传的文件' }, { status: 400 })
+  }
+
+  try {
+    const result = await ingestKnowledgeFile(file, duplicateStrategy)
+    return NextResponse.json({ success: true, result })
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : '上传失败，请稍后重试'
+    return NextResponse.json({ error: message }, { status: 500 })
+  }
 }

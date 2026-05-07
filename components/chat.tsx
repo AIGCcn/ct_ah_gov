@@ -74,24 +74,16 @@ export function Chat({ id, initialMessages, className }: ChatProps) {
       <Dialog open={previewTokenDialog} onOpenChange={setPreviewTokenDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Enter your OpenAI Key</DialogTitle>
+            <DialogTitle>输入 API 密钥</DialogTitle>
             <DialogDescription>
-              If you have not obtained your OpenAI API key, you can do so by{' '}
-              <a
-                href="https://platform.openai.com/signup/"
-                className="underline"
-              >
-                signing up
-              </a>{' '}
-              on the OpenAI website. This is only necessary for preview
-              environments so that the open source community can test the app.
-              The token will be saved to your browser&apos;s local storage under
-              the name <code className="font-mono">ai-token</code>.
+              如需使用预览环境，请输入您的 API 密钥。
+              密钥将保存在浏览器的本地存储中，键名为{' '}
+              <code className="font-mono">ai-token</code>。
             </DialogDescription>
           </DialogHeader>
           <Input
             value={previewTokenInput}
-            placeholder="OpenAI API key"
+            placeholder="API 密钥"
             onChange={e => setPreviewTokenInput(e.target.value)}
           />
           <DialogFooter className="items-center">
@@ -101,7 +93,7 @@ export function Chat({ id, initialMessages, className }: ChatProps) {
                 setPreviewTokenDialog(false)
               }}
             >
-              Save Token
+              保存密钥
             </Button>
           </DialogFooter>
         </DialogContent>
