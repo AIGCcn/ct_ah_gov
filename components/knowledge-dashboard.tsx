@@ -1,8 +1,10 @@
 'use client'
 
+import Link from 'next/link'
 import { useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
+  ArrowLeft,
   Eye,
   FileSearch,
   Loader2,
@@ -451,7 +453,16 @@ export function KnowledgeDashboard({
 
   if (!authorized) {
     return (
-      <div className="mx-auto flex w-full max-w-6xl flex-1 items-center px-4 py-10">
+      <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col items-center px-4 py-10">
+        <div className="mb-4 w-full max-w-lg">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            返回首页
+          </Link>
+        </div>
         <Card className="mx-auto w-full max-w-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -500,6 +511,16 @@ export function KnowledgeDashboard({
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-8">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-semibold">知识库管理</h2>
+        <Link
+          href="/"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          返回首页
+        </Link>
+      </div>
       <div className="grid gap-4 md:grid-cols-3">
         <Card size="sm">
           <CardHeader>

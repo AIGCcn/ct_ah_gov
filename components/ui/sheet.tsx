@@ -44,10 +44,11 @@ const SheetContent = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof SheetPrimitive.Content>
 >(({ className, children, ...props }, ref) => (
   <SheetPortal>
+    <SheetOverlay className="bg-black/50" />
     <SheetPrimitive.Content
       ref={ref}
       className={cn(
-        'fixed z-50 h-full border-r bg-background p-6 opacity-100 shadow-lg data-[state=closed]:animate-slide-to-left data-[state=open]:animate-slide-from-left',
+        'fixed inset-y-0 left-0 z-50 h-full border-r bg-background p-6 shadow-lg data-[state=closed]:animate-slide-to-left data-[state=open]:animate-slide-from-left',
         className
       )}
       {...props}

@@ -20,12 +20,12 @@
 - **自适应阈值检索** — 首次高阈值（0.78）检索，命中不足时自动降级重试（最低0.50），兼顾精准与召回
 - **上下文截断** — 单条文档限长1500字符，总context限长6000字符，防止无关内容溢出大模型窗口
 - **来源标注** — 每条检索文档自动标注政策文件名，AI回答时引用具体政策来源
-- **知识库管理** — 提供中文知识库管理页，可进行上传、搜索、全文预览、批量删除与重复文件处理
+- **知识库管理** — 提供中文知识库管理页，可进行上传、搜索、全文预览、批量删除与重复文件处理，支持"返回首页"快捷导航
 - **多格式文档上传与向量化** — 支持 `TXT / MD / CSV / JSON / HTML / XML / PDF / DOCX / DOC`，自动提取文本、分块、生成嵌入向量并存入向量数据库
 - **语义相似度搜索** — 使用pgvector进行向量相似度匹配，召回最相关的政策片段
 - **流式对话** — 基于Vercel AI SDK实现流式响应，实时生成回答
 - **用户认证** — 基于Supabase Auth的完整用户认证系统（支持GitHub OAuth），含密码修改功能
-- **聊天历史** — 对话记录持久化存储，支持历史会话管理
+- **聊天历史** — 对话记录持久化存储，支持历史会话管理（侧边栏弹出面板含遮罩层，视觉清晰无重叠）
 - **深色模式** — 支持亮色/暗色主题切换
 - **响应式设计** — 适配桌面端与移动端
 
@@ -283,6 +283,13 @@ Consulting/
 - **流式响应必须使用 Data Stream 协议**：`app/api/chat/route.ts` 中须调用 `result.toDataStreamResponse()` 而非 `toTextStreamResponse()`。前端 `useChat`（`@ai-sdk/react`）期望 Vercel AI SDK Data Stream 格式（`code:JSON\n` 帧结构，如 `0:"text"\n`），`toTextStreamResponse()` 返回纯文本会导致前端无法解析、聊天回复不显示
 - **pnpm lockfile 同步**：每次修改 `package.json` 后必须运行 `pnpm install` 更新 `pnpm-lock.yaml`，否则 Vercel CI 会报 `ERR_PNPM_OUTDATED_LOCKFILE`
 - [match_documents.sql](supabase/migrations/match_documents.sql) — pgvector向量匹配函数定义
+
+## 更新日志
+
+### 2026-05-08
+
+- **知识库页"返回首页"按钮**：在 `/knowledge` 页面登录前后均添加了"返回首页"快捷导航（含箭头图标），方便用户随时跳回聊天首页
+- **Chat History 侧边栏遮罩修复**：为 Sheet 弹出面板增加了半透明遮罩层（`bg-black/50`），修复了 Chat History 文字与用户图标视觉重叠的问题；同时优化了面板定位（`inset-y-0 left-0`），确保从左侧滑出的定位精准
 
 ## 政策文档
 
