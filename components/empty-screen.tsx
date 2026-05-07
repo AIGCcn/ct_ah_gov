@@ -6,16 +6,16 @@ import { IconArrowRight } from '@/components/ui/icons'
 
 const exampleMessages = [
   {
-    heading: '咨询最新政策',
-    message: `最近有哪些文旅支持政策？`
+    heading: '广电和网络视听产业有哪些支持政策？',
+    message: `《关于加快推进广播电视和网络视听产业高质量发展的实施意见》中提出了哪些重点支持方向和保障措施？`
   },
   {
-    heading: '了解申报条件',
-    message: '我需要满足什么条件才能申请资金补助？'
+    heading: '视听文旅融合三年行动计划的目标',
+    message: '《视听文旅融合发展三年行动计划（2026-2028）》提出了哪些主要目标和重点任务？'
   },
   {
-    heading: '查询审批流程',
-    message: `项目审批的完整流程是怎样的？`
+    heading: '文旅与广电如何深度融合？',
+    message: '《文旅与广电深度融合双向赋能工作指引》中提出了哪些融合路径和赋能举措？'
   }
 ]
 

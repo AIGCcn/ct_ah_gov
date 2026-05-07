@@ -26,7 +26,16 @@ export async function POST(req: NextRequest) {
   const duplicateStrategy: KnowledgeDuplicateStrategy =
     duplicateStrategyValue === 'replace' ? 'replace' : 'keep'
 
-  if (!(file instanceof File)) {
+  // In Node.js 18, the global File constructor may not exist.
+  // Use duck-typing to check if the form field is a file-like object.
+  const isFileLike =
+    file &&
+    typeof file === 'object' &&
+    'arrayBuffer' in file &&
+    'text' in file &&
+    'name' in file
+
+  if (!isFileLike) {
     return NextResponse.json({ error: '请选择要上传的文件' }, { status: 400 })
   }
 

@@ -15,6 +15,24 @@ import {
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
+async function safeResponseJson<T = Record<string, unknown>>(
+  response: Response
+): Promise<T> {
+  const text = await response.text()
+  if (!text) {
+    throw new Error(
+      `服务器未返回有效响应（HTTP ${response.status}），请稍后重试`
+    )
+  }
+  try {
+    return JSON.parse(text) as T
+  } catch {
+    throw new Error(
+      `服务器返回了非预期响应（HTTP ${response.status}），请稍后重试`
+    )
+  }
+}
+
 import type {
   KnowledgeDeleteTarget,
   KnowledgeDuplicateStrategy,
@@ -151,7 +169,7 @@ export function KnowledgeDashboard({
         method: 'GET',
         cache: 'no-store'
       })
-      const payload = await response.json()
+      const payload = await safeResponseJson<{ files?: KnowledgeFileSummary[]; error?: string }>(response)
 
       if (!response.ok) {
         if (response.status === 401) {
@@ -195,7 +213,7 @@ export function KnowledgeDashboard({
         },
         body: JSON.stringify({ password })
       })
-      const payload = await response.json()
+      const payload = await safeResponseJson<{ success?: boolean; error?: string }>(response)
 
       if (!response.ok) {
         throw new Error(payload.error || '密码验证失败')
@@ -253,7 +271,8 @@ export function KnowledgeDashboard({
           method: 'POST',
           body: formData
         })
-        const payload = await response.json()
+
+        const payload = await safeResponseJson<{ success?: boolean; error?: string; result?: unknown }>(response)
 
         if (!response.ok) {
           throw new Error(
@@ -311,7 +330,7 @@ export function KnowledgeDashboard({
         },
         body: JSON.stringify({ targets })
       })
-      const payload = await response.json()
+      const payload = await safeResponseJson<{ success?: boolean; error?: string }>(response)
 
       if (!response.ok) {
         throw new Error(payload.error || '删除失败')
@@ -368,7 +387,7 @@ export function KnowledgeDashboard({
           cache: 'no-store'
         }
       )
-      const payload = await response.json()
+      const payload = await safeResponseJson<{ results?: KnowledgeSearchResult[]; error?: string }>(response)
 
       if (!response.ok) {
         throw new Error(payload.error || '搜索知识片段失败')
@@ -401,7 +420,7 @@ export function KnowledgeDashboard({
         method: 'GET',
         cache: 'no-store'
       })
-      const payload = await response.json()
+      const payload = await safeResponseJson<{ file?: KnowledgeFileContent; error?: string }>(response)
 
       if (!response.ok) {
         throw new Error(payload.error || '读取全文预览失败')
@@ -615,8 +634,9 @@ export function KnowledgeDashboard({
                 value={searchQuery}
                 onChange={event => setSearchQuery(event.target.value)}
                 placeholder="输入文件名、政策关键词或片段内容"
+                className="flex-1"
               />
-              <Button type="submit" disabled={isSearching}>
+              <Button type="submit" disabled={isSearching} className="shrink-0 min-w-[80px]">
                 {isSearching ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

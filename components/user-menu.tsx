@@ -4,6 +4,8 @@ import Image from 'next/image'
 import { type Session } from '@supabase/auth-helpers-nextjs'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useRouter } from 'next/navigation'
+import * as React from 'react'
+import { toast } from 'react-hot-toast'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -13,7 +15,18 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
-import { IconExternalLink } from '@/components/ui/icons'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { IconSpinner } from '@/components/ui/icons'
 
 export interface UserMenuProps {
   user: Session['user']
@@ -26,13 +39,44 @@ function getUserInitials(name: string) {
 
 export function UserMenu({ user }: UserMenuProps) {
   const router = useRouter()
-
-  // Create a Supabase client configured to use cookies
   const supabase = createClientComponentClient()
 
   const signOut = async () => {
     await supabase.auth.signOut()
     router.refresh()
+  }
+
+  // 密码修改状态
+  const [dialogOpen, setDialogOpen] = React.useState(false)
+  const [isChangingPassword, setIsChangingPassword] = React.useState(false)
+  const [newPassword, setNewPassword] = React.useState('')
+  const [confirmPassword, setConfirmPassword] = React.useState('')
+
+  const handleChangePassword = async () => {
+    if (!newPassword || newPassword.length < 6) {
+      toast.error('密码长度不能少于6位')
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error('两次输入的密码不一致')
+      return
+    }
+    setIsChangingPassword(true)
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword })
+      if (error) {
+        toast.error(error.message)
+      } else {
+        toast.success('密码修改成功')
+        setNewPassword('')
+        setConfirmPassword('')
+        setDialogOpen(false)
+      }
+    } catch (err: any) {
+      toast.error(err.message || '密码修改失败')
+    } finally {
+      setIsChangingPassword(false)
+    }
   }
 
   return (
@@ -68,17 +112,62 @@ export function UserMenu({ user }: UserMenuProps) {
             <div className="text-xs text-zinc-500">{user?.email}</div>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem asChild>
-            <a
-              href="https://github.com/AIGCcn/ct_ah_gov"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex w-full items-center justify-between text-xs"
-            >
-              项目主页
-              <IconExternalLink className="ml-auto h-3 w-3" />
-            </a>
-          </DropdownMenuItem>
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <DropdownMenuItem
+                className="text-xs"
+                onSelect={(e: Event) => e.preventDefault()}
+              >
+                修改密码
+              </DropdownMenuItem>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[400px]">
+              <DialogHeader>
+                <DialogTitle>修改密码</DialogTitle>
+                <DialogDescription>
+                  请输入新密码并确认，密码长度不能少于6位。
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="new-password" className="text-right">
+                    新密码
+                  </Label>
+                  <Input
+                    id="new-password"
+                    type="password"
+                    value={newPassword}
+                    onChange={e => setNewPassword(e.target.value)}
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="confirm-password" className="text-right">
+                    确认密码
+                  </Label>
+                  <Input
+                    id="confirm-password"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={e => setConfirmPassword(e.target.value)}
+                    className="col-span-3"
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  onClick={handleChangePassword}
+                  disabled={isChangingPassword}
+                >
+                  {isChangingPassword && (
+                    <IconSpinner className="mr-2 animate-spin" />
+                  )}
+                  确认修改
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+          <DropdownMenuSeparator />
           <DropdownMenuItem onClick={signOut} className="text-xs">
             退出登录
           </DropdownMenuItem>

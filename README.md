@@ -16,11 +16,13 @@
 ## 功能特性
 
 - **RAG检索增强生成** — 基于上传的政策文档进行精准问答，AI仅依据知识库内容回答，避免幻觉
+- **自适应阈值检索** — 首次高阈值（0.78）检索，命中不足时自动降级重试（最低0.50），兼顾精准与召回
+- **上下文截断** — 单条文档限长1500字符，总context限长6000字符，防止无关内容溢出大模型窗口
 - **知识库管理** — 提供中文知识库管理页，可进行上传、搜索、全文预览、批量删除与重复文件处理
 - **多格式文档上传与向量化** — 支持 `TXT / MD / CSV / JSON / HTML / XML / PDF / DOCX / DOC`，自动提取文本、分块、生成嵌入向量并存入向量数据库
 - **语义相似度搜索** — 使用pgvector进行向量相似度匹配，召回最相关的政策片段
 - **流式对话** — 基于Vercel AI SDK实现流式响应，实时生成回答
-- **用户认证** — 基于Supabase Auth的完整用户认证系统（支持GitHub OAuth）
+- **用户认证** — 基于Supabase Auth的完整用户认证系统（支持GitHub OAuth），含密码修改功能
 - **聊天历史** — 对话记录持久化存储，支持历史会话管理
 - **深色模式** — 支持亮色/暗色主题切换
 - **响应式设计** — 适配桌面端与移动端
@@ -33,12 +35,13 @@
 |------|------|
 | 前端框架 | [Next.js 13](https://nextjs.org) (App Router) |
 | AI SDK | [Vercel AI SDK](https://sdk.vercel.ai/docs) |
-| 大语言模型 | [MiniMax](https://api.minimaxi.com) `abab6.5s-chat` |
-| 嵌入模型 | MiniMax `embo-01` (1536维) |
+| 大语言模型 | [MiniMax](https://api.minimaxi.com) `MiniMax-M2.7`（Anthropic 兼容端点） |
+| 嵌入模型 | [Supabase gte-small](https://supabase.com/docs/guides/ai) (384维，免费) |
 | 数据库 | [Supabase Postgres](https://supabase.com) + [pgvector](https://github.com/pgvector/pgvector) |
 | 认证 | [Supabase Auth](https://supabase.com/auth) |
 | UI组件 | [shadcn/ui](https://ui.shadcn.com) + [Radix UI](https://radix-ui.com) |
 | 样式 | [Tailwind CSS](https://tailwindcss.com) |
+| 文档解析 | [pdf-parse](https://npmjs.com/package/pdf-parse) (PDF) / [mammoth](https://npmjs.com/package/mammoth) (DOCX) / [word-extractor](https://npmjs.com/package/word-extractor) (DOC) |
 | 语言 | TypeScript |
 
 ### RAG工作流程
@@ -48,26 +51,33 @@
   │
   ▼
 ┌─────────────────────────┐
-│  1. 生成查询嵌入向量      │  MiniMax embo-01
-│     (Query Embedding)    │
+│  1. 生成查询嵌入向量      │  Supabase Edge Function
+│     (Query Embedding)    │  gte-small (384维)
 └───────────┬─────────────┘
             │
             ▼
 ┌─────────────────────────┐
-│  2. 向量相似度搜索        │  Supabase pgvector
-│     (match_documents)    │  阈值: 0.78, Top-5
+│  2. 自适应阈值向量检索    │  Supabase pgvector
+│     (match_documents)    │  初始阈值 0.78，不足时降级至 0.50
+│     最多检索 10 条         │  命中 < 2 条则逐步降低阈值重试
 └───────────┬─────────────┘
             │
             ▼
 ┌─────────────────────────┐
-│  3. 构建增强提示          │  System Prompt + 检索上下文
-│     (Augmented Prompt)   │
+│  3. 上下文截断           │  单条 ≤ 1500 字符
+│     (Context Truncate)   │  总量 ≤ 6000 字符
 └───────────┬─────────────┘
             │
             ▼
 ┌─────────────────────────┐
-│  4. 流式生成回答          │  MiniMax abab6.5s-chat
-│     (Stream Response)    │
+│  4. 构建增强提示          │  System Prompt + 检索上下文
+│     (Augmented Prompt)   │  无相关资料时要求明确说明
+└───────────┬─────────────┘
+            │
+            ▼
+┌─────────────────────────┐
+│  5. 流式生成回答          │  MiniMax-M2.7
+│     (Stream Response)    │  (Anthropic 兼容端点)
 └─────────────────────────┘
 ```
 
@@ -109,6 +119,7 @@ cp .env.example .env
 | `Model_API_KEY` | MiniMax API密钥（从 [MiniMax开放平台](https://api.minimaxi.com) 获取） |
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase项目URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase匿名密钥 |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase服务端密钥（绕过RLS，用于知识库写入） |
 | `NEXT_PUBLIC_AUTH_GITHUB` | 是否启用GitHub OAuth（`true`/`false`） |
 | `AUTH_GITHUB_ID` | GitHub OAuth App ID |
 | `AUTH_GITHUB_SECRET` | GitHub OAuth App Secret |
@@ -159,10 +170,18 @@ Consulting/
 │   ├── chat.tsx               # 聊天主组件
 │   ├── chat-panel.tsx         # 聊天面板
 │   ├── chat-message.tsx       # 消息气泡
-│   ├── empty-screen.tsx       # 欢迎页（含示例问题）
-│   ├── header.tsx             # 顶部导航
-│   ├── sidebar.tsx            # 侧边栏（聊天历史）
-│   └── ...                    # 其他组件
+│   ├── empty-screen.tsx       # 欢迎页（含政策相关示例问题）
+│   ├── header.tsx             # 顶部导航（含侧边栏触发、知识库入口）
+│   ├── user-menu.tsx          # 用户下拉菜单（密码修改、退出登录）
+│   ├── sidebar.tsx            # 侧边栏容器（Sheet 弹出面板）
+│   ├── sidebar-list.tsx       # 聊天历史列表
+│   ├── sidebar-footer.tsx     # 侧边栏底部（主题切换 + 清除记录）
+│   ├── theme-toggle.tsx       # 明暗主题切换
+│   ├── clear-history.tsx      # 清除聊天记录
+│   ├── knowledge-dashboard.tsx # 知识库管理界面（上传、搜索、预览、批量删除）
+│   ├── login-form.tsx         # 登录/注册表单
+│   ├── tailwind-indicator.tsx # 响应式断点指示器（仅开发环境）
+│   └── providers.tsx          # 主题等 Provider 封装
 ├── lib/
 │   ├── hooks/                 # 自定义Hooks
 │   ├── knowledge-admin.ts     # 知识库服务层
@@ -171,9 +190,12 @@ Consulting/
 │   ├── types.ts               # 类型定义
 │   └── utils.ts               # 工具函数
 ├── supabase/
+│   ├── functions/
+│   │   └── embed/index.ts     # Edge Function: gte-small 嵌入生成
 │   ├── migrations/
 │   │   ├── 20230707053030_init.sql       # 聊天表初始化
-│   │   └── match_documents.sql           # 文档表 + 向量匹配函数
+│   │   ├── 20260507_vector_384.sql       # documents 表 384 维向量迁移
+│   │   └── match_documents.sql           # 向量匹配函数（原始 1536 维）
 │   ├── config.toml            # Supabase本地配置
 │   └── seed.sql               # 种子数据
 ├── auth.ts                    # 认证工具函数
@@ -183,14 +205,37 @@ Consulting/
 
 ### 关键文件说明
 
-- [route.ts](app/api/chat/route.ts) — RAG核心逻辑：查询嵌入 → 向量搜索 → 上下文注入 → 流式生成
+- [route.ts](app/api/chat/route.ts) — RAG核心逻辑：查询嵌入 → 自适应阈值检索 → 上下文截断 → 流式生成
 - [upload/route.ts](app/api/upload/route.ts) — 文档上传：文件解析 → 分块 → 嵌入 → 存储
 - [page.tsx](app/knowledge/page.tsx) — 知识库管理页入口
 - [knowledge-dashboard.tsx](components/knowledge-dashboard.tsx) — 知识文件上传、搜索、预览与批量管理界面
 - [knowledge-admin.ts](lib/knowledge-admin.ts) — 知识文件聚合、全文读取、搜索、删除与导入逻辑
-- [knowledge-parser.ts](lib/knowledge-parser.ts) — PDF、DOCX、DOC 与文本文件解析
+- [knowledge-parser.ts](lib/knowledge-parser.ts) — PDF、DOCX、DOC 与文本文件解析（PDF 使用动态 import 避免 SSR 报错）
+- [user-menu.tsx](components/user-menu.tsx) — 用户下拉菜单（密码修改、退出登录，已移除项目主页链接）
+- [empty-screen.tsx](components/empty-screen.tsx) — 欢迎页面，含政策文档相关示例问题
+- [header.tsx](components/header.tsx) — 顶部导航栏，组合侧边栏触发器、用户菜单、知识库入口
+
+### RAG 参数配置
+
+`app/api/chat/route.ts` 中的 `RAG_CONFIG` 对象集中管理所有检索参数：
+
+| 参数 | 值 | 说明 |
+|------|-----|------|
+| `initialThreshold` | 0.78 | 初始相似度阈值 |
+| `minThreshold` | 0.50 | 自适应降级最低阈值 |
+| `thresholdStep` | 0.05 | 每次降级步长 |
+| `minMatchCount` | 2 | 触发降级的最少命中数 |
+| `maxMatchCount` | 10 | 单次最大检索文档数 |
+| `maxChunkChars` | 1500 | 单条文档最大字符数 |
+| `maxContextChars` | 6000 | 总 context 最大字符数 |
+
+## 注意事项
+
+- **禁用 Edge Runtime**：页面不得声明 `export const runtime = 'edge'`，否则 `cookies()` / `requestAsyncStorage` 不可用会导致崩溃
+- **`next.config.js` 特殊配置**：`serverComponentsExternalPackages` 排除了 `pdfjs-dist` / `pdf-parse` / `@napi-rs/canvas` 以避免 ESM 打包错误；客户端 webpack alias 将这些模块设为 `false`，请勿移除
+- **`pdf-parse` 动态导入**：`knowledge-parser.ts` 中 PDF 解析使用 `await import('pdf-parse')`，不可改为顶层静态 import（会触发 `DOMMatrix is not defined`）
+- **RLS 绕过**：`documents` 表启用了 RLS，所有写入操作（INSERT/DELETE）和 RPC 查询使用 `service_role` key 的 `supabaseAdmin` 客户端
 - [match_documents.sql](supabase/migrations/match_documents.sql) — pgvector向量匹配函数定义
-- [empty-screen.tsx](components/empty-screen.tsx) — 欢迎页面，包含政策咨询示例问题
 
 ## 政策文档
 

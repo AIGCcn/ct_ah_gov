@@ -3,6 +3,7 @@ import 'server-only'
 import { createHash, randomUUID, timingSafeEqual } from 'crypto'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
+import ws from 'ws'
 
 import { extractKnowledgeText } from '@/lib/knowledge-parser'
 import type {
@@ -20,7 +21,25 @@ const KNOWLEDGE_ADMIN_COOKIE_MAX_AGE = 60 * 60 * 12
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  {
+    realtime: {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      transport: ws as any
+    }
+  }
+)
+
+/** Admin client with service_role key — bypasses RLS for INSERT/DELETE */
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  }
 )
 
 type CookieReader = Pick<ReturnType<typeof cookies>, 'get'>
@@ -189,7 +208,7 @@ async function getDocumentRowsForFile(target: KnowledgeDeleteTarget) {
 }
 
 async function deleteKnowledgeFilesByFilename(filename: string) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('documents')
     .delete()
     .filter('metadata->>filename', 'eq', filename.trim())
@@ -346,7 +365,7 @@ export async function deleteKnowledgeFiles(targets: KnowledgeDeleteTarget[]) {
 
   for (const target of targets) {
     if (target.fileId?.trim()) {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('documents')
         .delete()
         .filter('metadata->>fileId', 'eq', target.fileId.trim())
@@ -364,6 +383,43 @@ export async function deleteKnowledgeFiles(targets: KnowledgeDeleteTarget[]) {
 
     await deleteKnowledgeFilesByFilename(filename)
   }
+}
+
+/**
+ * Generate embedding via Supabase Edge Function (gte-small, 384-dim)
+ */
+async function generateEmbedding(text: string): Promise<number[]> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+
+  const response = await fetch(`${supabaseUrl}/functions/v1/embed`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      apikey: supabaseAnonKey,
+      Authorization: `Bearer ${supabaseAnonKey}`
+    },
+    body: JSON.stringify({ input: text })
+  })
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => '')
+    throw new Error(
+      `向量生成请求失败（HTTP ${response.status}）${errorText ? `：${errorText}` : ''}`
+    )
+  }
+
+  const data = await response.json()
+
+  if (data.error) {
+    throw new Error(`向量生成失败：${data.error}`)
+  }
+
+  if (!data.embedding || !Array.isArray(data.embedding)) {
+    throw new Error('向量结果为空，请稍后重试')
+  }
+
+  return data.embedding
 }
 
 export async function ingestKnowledgeFile(
@@ -392,33 +448,9 @@ export async function ingestKnowledgeFile(
 
   for (let index = 0; index < chunks.length; index++) {
     const chunk = chunks[index]
-    const embeddingResponse = await fetch(
-      'https://api.minimaxi.com/v1/embeddings',
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${process.env.Model_API_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: 'embo-01',
-          input: chunk
-        })
-      }
-    )
+    const embedding = await generateEmbedding(chunk)
 
-    if (!embeddingResponse.ok) {
-      throw new Error('向量生成失败，请稍后重试')
-    }
-
-    const { data } = await embeddingResponse.json()
-    const embedding = data?.[0]?.embedding
-
-    if (!embedding) {
-      throw new Error('向量结果为空，请稍后重试')
-    }
-
-    const { error } = await supabase.from('documents').insert({
+    const { error } = await supabaseAdmin.from('documents').insert({
       content: chunk,
       embedding,
       metadata: {

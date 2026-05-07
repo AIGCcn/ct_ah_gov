@@ -1,7 +1,6 @@
 import 'server-only'
 
 import mammoth from 'mammoth'
-import { PDFParse } from 'pdf-parse'
 import WordExtractor from 'word-extractor'
 
 interface ExtractedKnowledgeText {
@@ -50,6 +49,11 @@ function inferSourceType(extension: string) {
 }
 
 async function extractPdfText(buffer: Buffer) {
+  // Dynamic import to avoid bundling pdf-parse (and its heavy
+  // dependency @napi-rs/canvas / pdfjs-dist) at module evaluation
+  // time.  This prevents "DOMMatrix is not defined" and ESM export
+  // errors during server-side rendering.
+  const { PDFParse } = await import('pdf-parse')
   const parser = new PDFParse({ data: buffer })
 
   try {
