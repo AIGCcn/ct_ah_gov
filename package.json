@@ -14,7 +14,7 @@
     "format:check": "prettier --check \"{app,lib,components}**/*.{ts,tsx,mdx}\" --cache"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^0.0.14",
+    "@ai-sdk/anthropic": "0.0.56",
     "@hugeicons/core-free-icons": "^4.1.1",
     "@hugeicons/react": "^1.1.6",
     "@radix-ui/react-alert-dialog": "^1.0.4",

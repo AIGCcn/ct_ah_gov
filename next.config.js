@@ -1,6 +1,11 @@
 /** @type {import('next').NextConfig} */
 module.exports = {
   reactStrictMode: true,
+  eslint: {
+    // tailwindcss ESLint plugin fails to resolve tailwindcss in pnpm monorepo;
+    // type-checking is still enforced by TypeScript.
+    ignoreDuringBuilds: true
+  },
   experimental: {
     serverActions: true,
     serverComponentsExternalPackages: ['pdfjs-dist', 'pdf-parse', '@napi-rs/canvas', 'ws']

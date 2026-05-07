@@ -1,9 +1,9 @@
-import { createOpenAI } from '@ai-sdk/openai';
+import { createAnthropic } from '@ai-sdk/anthropic';
 import { streamText } from 'ai';
 import { createClient } from '@supabase/supabase-js';
 
 // MiniMax via Anthropic-compatible endpoint (Token Plan sk-cp- key)
-const minimax = createOpenAI({
+const minimax = createAnthropic({
   apiKey: process.env.Model_API_KEY!,
   baseURL: 'https://api.minimaxi.com/anthropic/v1'
 });

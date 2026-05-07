@@ -54,7 +54,7 @@ async function extractPdfText(buffer: Buffer) {
   // time.  This prevents "DOMMatrix is not defined" and ESM export
   // errors during server-side rendering.
   const { PDFParse } = await import('pdf-parse')
-  const parser = new PDFParse({ data: buffer })
+  const parser = new PDFParse({ data: new Uint8Array(buffer) })
 
   try {
     const result = await parser.getText()
@@ -65,7 +65,8 @@ async function extractPdfText(buffer: Buffer) {
 }
 
 async function extractDocxText(buffer: Buffer) {
-  const result = await mammoth.extractRawText({ buffer })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const result = await mammoth.extractRawText({ buffer: buffer as any })
   return result.value || ''
 }
 

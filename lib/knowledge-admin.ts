@@ -56,8 +56,8 @@ function hashValue(value: string) {
 }
 
 function safeEqual(left: string, right: string) {
-  const leftHash = Buffer.from(hashValue(left))
-  const rightHash = Buffer.from(hashValue(right))
+  const leftHash = new Uint8Array(Buffer.from(hashValue(left)))
+  const rightHash = new Uint8Array(Buffer.from(hashValue(right)))
 
   return timingSafeEqual(leftHash, rightHash)
 }
