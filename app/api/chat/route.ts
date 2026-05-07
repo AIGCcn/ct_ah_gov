@@ -119,35 +119,47 @@ async function retrieveWithAdaptiveThreshold(
   return { docs: results, finalThreshold: threshold };
 }
 
+function getFilenameFromMetadata(metadata: unknown): string {
+  if (!metadata || typeof metadata !== 'object') return '未知来源';
+  const value = Reflect.get(metadata as Record<string, unknown>, 'filename');
+  return typeof value === 'string' && value.trim() ? value.trim() : '未知来源';
+}
+
 /**
  * 上下文截断：单条文档限长 + 总 context 限长
+ * 每条文档前标注来源政策文件名，便于AI引用具体政策
  */
 function truncateContext(docs: any[]): string {
   const chunks: string[] = [];
   let totalChars = 0;
 
   for (const doc of docs) {
-    // 单条截断
+    const filename = getFilenameFromMetadata(doc.metadata);
+    const sourceTag = `【来源：${filename}】\n`;
+    // 单条截断（含来源标签）
     let content: string = doc.content || '';
-    if (content.length > RAG_CONFIG.maxChunkChars) {
-      content = content.slice(0, RAG_CONFIG.maxChunkChars) + '…[内容已截断]';
+    const maxContentChars = RAG_CONFIG.maxChunkChars - sourceTag.length;
+    if (content.length > maxContentChars) {
+      content = content.slice(0, Math.max(200, maxContentChars)) + '…[内容已截断]';
     }
 
+    const taggedContent = sourceTag + content;
+
     // 总长度检查
-    if (totalChars + content.length > RAG_CONFIG.maxContextChars) {
+    if (totalChars + taggedContent.length > RAG_CONFIG.maxContextChars) {
       // 还能放多少
       const remaining = RAG_CONFIG.maxContextChars - totalChars;
       if (remaining > 100) {
-        chunks.push(content.slice(0, remaining) + '…[内容已截断]');
+        chunks.push(taggedContent.slice(0, remaining) + '…[内容已截断]');
       }
       break;
     }
 
-    chunks.push(content);
-    totalChars += content.length;
+    chunks.push(taggedContent);
+    totalChars += taggedContent.length;
   }
 
-  return chunks.join('\n');
+  return chunks.join('\n\n');
 }
 
 export async function POST(req: Request) {
@@ -190,7 +202,14 @@ export async function POST(req: Request) {
     messages: [
       {
         role: 'system',
-        content: `你是专业咨询智能体，只根据以下资料回答。如果资料中没有相关信息，请明确说明"根据现有资料无法回答"并给出注明AI生成的暧心建议，不要编造内容。\n\n---参考资料开始---\n${context}\n---参考资料结束---`
+        content: `你是安徽省广电文旅政策咨询专业智能体，只根据以下资料回答。关键规则：
+1. 回答时必须明确标注信息出自哪个具体的政策文件，使用"根据《xxx》/《xxx》的通知"的格式引用，绝不能笼统地说"根据政策汇编"或"根据资料"。
+2. 如果参考资料来自多个政策文件，分别标注每个信息的来源文件名。
+3. 如果资料中没有相关信息，请明确说明"根据现有资料无法回答"并给出注明AI生成的暧心建议，不要编造内容。
+
+---参考资料开始---
+${context}
+---参考资料结束---`
       },
       ...messages
     ],
