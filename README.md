@@ -272,13 +272,15 @@ Consulting/
 
 - **禁用 Edge Runtime**：页面不得声明 `export const runtime = 'edge'`，否则 `cookies()` / `requestAsyncStorage` 不可用会导致崩溃
 - **`next.config.js` 特殊配置**：
-  - `serverComponentsExternalPackages` 排除了 `pdfjs-dist` / `pdf-parse` / `@napi-rs/canvas` / `ws` 以避免 ESM 打包错误
+  - `serverComponentsExternalPackages` 排除了 `pdfjs-dist` / `pdf-parse` / `@napi-rs/canvas` 以避免 ESM 打包错误
   - 客户端 webpack alias 将这些模块设为 `false`，请勿移除
   - `eslint.ignoreDuringBuilds: true` 绕过 pnpm 环境下 tailwindcss ESLint 插件解析问题
 - **`pdf-parse` 动态导入**：`knowledge-parser.ts` 中 PDF 解析使用 `await import('pdf-parse')`，不可改为顶层静态 import（会触发 `DOMMatrix is not defined`）
 - **RLS 绕过**：`documents` 表启用了 RLS，所有写入操作（INSERT/DELETE）和 RPC 查询使用 `service_role` key 的 `supabaseAdmin` 客户端
 - **tsconfig.json**：`moduleResolution` 设置为 `"bundler"` 以正确解析 `ai/react` 等包的 exports 字段
 - **MiniMax Token Plan Key**：`sk-cp-` 前缀密钥仅支持 Anthropic 兼容端点调用 Chat 模型（MiniMax-M2.7），不支持原生 Embeddings API
+- **Vercel 环境无需 ws polyfill**：Vercel Serverless 原生支持 WebSocket，`knowledge-admin.ts` 中不使用 `import ws from 'ws'`（本地 Node.js 18 开发如遇 Realtime WebSocket 问题可临时添加）
+- **流式响应必须使用 Data Stream 协议**：`app/api/chat/route.ts` 中须调用 `result.toDataStreamResponse()` 而非 `toTextStreamResponse()`。前端 `useChat`（`@ai-sdk/react`）期望 Vercel AI SDK Data Stream 格式（`code:JSON\n` 帧结构，如 `0:"text"\n`），`toTextStreamResponse()` 返回纯文本会导致前端无法解析、聊天回复不显示
 - **pnpm lockfile 同步**：每次修改 `package.json` 后必须运行 `pnpm install` 更新 `pnpm-lock.yaml`，否则 Vercel CI 会报 `ERR_PNPM_OUTDATED_LOCKFILE`
 - [match_documents.sql](supabase/migrations/match_documents.sql) — pgvector向量匹配函数定义
 

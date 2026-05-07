@@ -215,5 +215,5 @@ ${context}
     ],
   });
 
-  return result.toTextStreamResponse();
+  return result.toDataStreamResponse();
 }
