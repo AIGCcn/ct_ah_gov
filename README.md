@@ -280,7 +280,8 @@ Consulting/
 - **tsconfig.json**：`moduleResolution` 设置为 `"bundler"` 以正确解析 `ai/react` 等包的 exports 字段
 - **MiniMax Token Plan Key**：`sk-cp-` 前缀密钥仅支持 Anthropic 兼容端点调用 Chat 模型（MiniMax-M2.7），不支持原生 Embeddings API
 - **Vercel 环境无需 ws polyfill**：Vercel Serverless 原生支持 WebSocket，`knowledge-admin.ts` 中不使用 `import ws from 'ws'`（本地 Node.js 18 开发如遇 Realtime WebSocket 问题可临时添加）
-- **流式响应必须使用 Data Stream 协议**：`app/api/chat/route.ts` 中须调用 `result.toDataStreamResponse()` 而非 `toTextStreamResponse()`。前端 `useChat`（`@ai-sdk/react`）期望 Vercel AI SDK Data Stream 格式（`code:JSON\n` 帧结构，如 `0:"text"\n`），`toTextStreamResponse()` 返回纯文本会导致前端无法解析、聊天回复不显示
+- **流式响应必须使用 Data Stream 协议**：`app/api/chat/route.ts` 中须调用 `result.toDataStream()` 而非 `toDataStreamResponse()`。前端 `useChat`（`@ai-sdk/react`）期望 Vercel AI SDK Data Stream 格式（`code:JSON\n` 帧结构，如 `0:"text"\n`），`toTextStreamResponse()` 返回纯文本会导致前端无法解析、聊天回复不显示
+- **MiniMax 空错误帧过滤**：MiniMax-M2.7 通过 Anthropic 兼容端点调用时会在流中发送空 error 事件（`3:""`），这些并非真正的错误，但前端 `processDataProtocolResponse` 遇到 `type="error"` 会直接 throw 导致回答不显示。`route.ts` 中通过 `TransformStream` 过滤掉这些空 error 帧，只保留有实质内容的 error
 - **pnpm lockfile 同步**：每次修改 `package.json` 后必须运行 `pnpm install` 更新 `pnpm-lock.yaml`，否则 Vercel CI 会报 `ERR_PNPM_OUTDATED_LOCKFILE`
 - [match_documents.sql](supabase/migrations/match_documents.sql) — pgvector向量匹配函数定义
 
@@ -290,6 +291,7 @@ Consulting/
 
 - **知识库页"返回首页"按钮**：在 `/knowledge` 页面登录前后均添加了"返回首页"快捷导航（含箭头图标），方便用户随时跳回聊天首页
 - **Chat History 侧边栏遮罩修复**：为 Sheet 弹出面板增加了半透明遮罩层（`bg-black/50`），修复了 Chat History 文字与用户图标视觉重叠的问题；同时优化了面板定位（`inset-y-0 left-0`），确保从左侧滑出的定位精准
+- **聊天回答不显示修复**：MiniMax-M2.7 通过 Anthropic 兼容端点（`api.minimaxi.com/anthropic/v1`）调用时会在流式响应中发送空 error 事件（`3:""`），前端 `@ai-sdk/ui-utils` 的 `processDataProtocolResponse` 遇到 `type="error"` 直接 throw 导致后续文本内容被丢弃。修复方案：在 `route.ts` 中用 `TransformStream` 过滤掉空 error 帧（`3:""`），只保留有实质内容的 error，使 AI 回答正常渲染
 
 ## 政策文档
 

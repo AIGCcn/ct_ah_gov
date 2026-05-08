@@ -215,5 +215,35 @@ ${context}
     ],
   });
 
-  return result.toDataStreamResponse();
+  // MiniMax-M2.7 via Anthropic 兼容端点会在流中发送空 error 事件（3:""），
+  // 这些并非真正的错误，但前端 useChat 的 processDataProtocolResponse
+  // 遇到 type="error" 会直接 throw，导致后续文本内容被丢弃、回答不显示。
+  // 修复：过滤掉空 error 帧，只保留有实质内容的 error。
+  const dataStream = result.toDataStream();
+  const filteredStream = dataStream.pipeThrough(
+    new TransformStream({
+      transform(chunk, controller) {
+        // Data Stream 协议格式为 "code:JSON\n"
+        // error 帧的 code 为 "3"，如 3:"error message"
+        const text = new TextDecoder().decode(chunk);
+        const lines = text.split('\n');
+        for (const line of lines) {
+          if (line.startsWith('3:""') || line === '3:') {
+            // 空错误帧，跳过（MiniMax 兼容层产生的无意义 error 事件）
+            continue;
+          }
+          if (line) {
+            controller.enqueue(new TextEncoder().encode(line + '\n'));
+          }
+        }
+      }
+    })
+  );
+
+  return new Response(filteredStream, {
+    headers: {
+      'Content-Type': 'text/plain; charset=utf-8',
+      'X-Vercel-AI-Data-Stream': 'v1'
+    }
+  });
 }
