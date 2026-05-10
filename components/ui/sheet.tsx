@@ -17,7 +17,7 @@ const SheetPortal = ({
   ...props
 }: SheetPrimitive.DialogPortalProps) => (
   <SheetPrimitive.Portal {...props}>
-    <div className="fixed inset-0 z-50 flex">
+    <div className="fixed inset-0 z-[100] flex">
       {children}
     </div>
   </SheetPrimitive.Portal>
@@ -30,7 +30,7 @@ const SheetOverlay = React.forwardRef<
 >(({ className, children, ...props }, ref) => (
   <SheetPrimitive.Overlay
     className={cn(
-      'fixed inset-0 z-50 transition-all duration-100 data-[state=closed]:animate-out data-[state=closed]:fade-out data-[state=open]:fade-in',
+      'fixed inset-0 z-[100] transition-all duration-100 data-[state=closed]:animate-out data-[state=closed]:fade-out data-[state=open]:fade-in',
       className
     )}
     {...props}
@@ -48,7 +48,7 @@ const SheetContent = React.forwardRef<
     <SheetPrimitive.Content
       ref={ref}
       className={cn(
-        'fixed inset-y-0 left-0 z-50 h-full border-r bg-background p-6 shadow-lg data-[state=closed]:animate-slide-to-left data-[state=open]:animate-slide-from-left',
+        'fixed inset-y-0 left-0 z-[100] h-full border-r bg-background p-6 shadow-lg data-[state=closed]:animate-slide-to-left data-[state=open]:animate-slide-from-left',
         className
       )}
       {...props}
