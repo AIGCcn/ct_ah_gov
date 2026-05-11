@@ -26,7 +26,7 @@
 - **附加网络搜索** — 用户可勾选"附加网络信息搜索"，通过 MiniMax Token Plan MCP 网络搜索 API 补充互联网信息；回答中严格区分政策知识库信息与网络搜索信息，避免误导
 - **流式对话** — 基于Vercel AI SDK实现流式响应，实时生成回答
 - **用户认证** — 基于Supabase Auth的完整用户认证系统（支持GitHub OAuth），含密码修改功能
-- **聊天历史** — 对话记录持久化存储，支持历史会话管理（侧边栏弹出面板含遮罩层，z-index 高于顶部导航，视觉清晰无重叠）
+- **聊天历史** — 对话记录持久化存储，支持历史会话管理（AI 回复完成后自动保存到 Supabase，首页新对话自动跳转 `/chat/{id}` 持久化 URL）
 - **深色模式** — 支持亮色/暗色主题切换
 - **响应式设计** — 适配桌面端与移动端
 
@@ -287,6 +287,13 @@ Consulting/
 - [match_documents.sql](supabase/migrations/match_documents.sql) — pgvector向量匹配函数定义
 
 ## 更新日志
+
+### 2026-05-12
+
+- **聊天历史记录修复**：之前聊天记录不会保存到数据库，Chat History 面板始终为空。根因：写入路径完全缺失——没有 `saveChat` action、没有 `onFinish` 回调、API route 不提取 chat ID。修复：
+  - 新增 `saveChat` server action（`app/actions.ts`），在 `onFinish` 回调中调用，将完整对话（id、标题、消息、用户 ID）upsert 到 Supabase `chats` 表
+  - 在 `components/chat.tsx` 的 `useChat` hook 中添加 `onFinish` 回调，AI 回复完成后自动保存聊天记录，并将首页新对话导航到 `/chat/{id}` 持久化 URL
+  - 修复 `clearChats` 不按用户过滤的 bug（之前会删除所有用户的聊天记录）
 
 ### 2026-05-11
 

@@ -7,6 +7,55 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
 import { type Chat } from '@/lib/types'
+import { type Message } from 'ai'
+
+export async function saveChat({
+  id,
+  title,
+  messages
+}: {
+  id: string
+  title: string
+  messages: Message[]
+}) {
+  try {
+    const cookieStore = cookies()
+    const supabase = createServerActionClient<Database>({
+      cookies: () => cookieStore
+    })
+
+    const {
+      data: { session }
+    } = await supabase.auth.getSession()
+    if (!session?.user) {
+      return { error: 'Unauthorized' }
+    }
+
+    const chat = {
+      id,
+      title,
+      createdAt: new Date(),
+      userId: session.user.id,
+      path: `/chat/${id}`,
+      messages
+    }
+
+    await supabase
+      .from('chats')
+      .upsert({
+        id: chat.id,
+        payload: chat as any,
+        user_id: session.user.id
+      })
+      .throwOnError()
+
+    revalidatePath('/')
+    revalidatePath(`/chat/${id}`)
+  } catch (error) {
+    console.error('saveChat error:', error)
+    return { error: 'Failed to save chat' }
+  }
+}
 
 export async function getChats(userId?: string | null) {
   if (!userId) {
@@ -67,7 +116,17 @@ export async function clearChats() {
     const supabase = createServerActionClient<Database>({
       cookies: () => cookieStore
     })
-    await supabase.from('chats').delete().throwOnError()
+    const {
+      data: { session }
+    } = await supabase.auth.getSession()
+    if (!session?.user) {
+      return { error: 'Unauthorized' }
+    }
+    await supabase
+      .from('chats')
+      .delete()
+      .eq('user_id', session.user.id)
+      .throwOnError()
     revalidatePath('/')
     return redirect('/')
   } catch (error) {

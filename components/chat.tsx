@@ -1,6 +1,7 @@
 'use client'
 
 import { useChat, type Message } from 'ai/react'
+import { useRouter } from 'next/navigation'
 
 import { cn } from '@/lib/utils'
 import { ChatList } from '@/components/chat-list'
@@ -20,6 +21,7 @@ import { useState } from 'react'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { toast } from 'react-hot-toast'
+import { saveChat } from '@/app/actions'
 
 const IS_PREVIEW = process.env.VERCEL_ENV === 'preview'
 export interface ChatProps extends React.ComponentProps<'div'> {
@@ -28,6 +30,7 @@ export interface ChatProps extends React.ComponentProps<'div'> {
 }
 
 export function Chat({ id, initialMessages, className }: ChatProps) {
+  const router = useRouter()
   const [previewToken, setPreviewToken] = useLocalStorage<string | null>(
     'ai-token',
     null
@@ -48,6 +51,32 @@ export function Chat({ id, initialMessages, className }: ChatProps) {
         if (response.status === 401) {
           toast.error(response.statusText)
         }
+      },
+      onFinish(message) {
+        if (!id) return
+
+        // 合并最终消息到 messages 数组
+        const existingIndex = messages.findIndex(m => m.id === message.id)
+        let allMessages: Message[]
+        if (existingIndex >= 0) {
+          allMessages = [...messages]
+          allMessages[existingIndex] = message
+        } else {
+          allMessages = [...messages, message]
+        }
+
+        // 用第一条用户消息作为标题
+        const userMsg = allMessages.find(m => m.role === 'user')
+        const content =
+          typeof userMsg?.content === 'string' ? userMsg.content : '新对话'
+        const title = content.slice(0, 50)
+
+        saveChat({ id, title, messages: allMessages }).then(() => {
+          // 如果是首页新对话，跳转到 /chat/{id} 使 URL 持久化
+          if (window.location.pathname === '/') {
+            router.push(`/chat/${id}`)
+          }
+        })
       }
     })
   return (
