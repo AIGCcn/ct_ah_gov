@@ -276,7 +276,7 @@ Consulting/
   - 客户端 webpack alias 将这些模块设为 `false`，请勿移除
   - `eslint.ignoreDuringBuilds: true` 绕过 pnpm 环境下 tailwindcss ESLint 插件解析问题
 - **`pdf-parse` 动态导入**：`knowledge-parser.ts` 中 PDF 解析使用 `await import('pdf-parse')`，不可改为顶层静态 import（会触发 `DOMMatrix is not defined`）
-- **RLS 绕过**：`documents` 表启用了 RLS，所有写入操作（INSERT/DELETE）和 RPC 查询使用 `service_role` key 的 `supabaseAdmin` 客户端
+- **Edge Function 鉴权**：`generateEmbedding` 调用 Supabase Edge Function 生成嵌入向量时必须使用 `service_role` key（通过 `apikey` 头传入），使用 `anon key` 会返回 401 导致嵌入降级为全零向量、检索无法命中
 - **tsconfig.json**：`moduleResolution` 设置为 `"bundler"` 以正确解析 `ai/react` 等包的 exports 字段
 - **MiniMax Token Plan Key**：`sk-cp-` 前缀密钥仅支持 Anthropic 兼容端点调用 Chat 模型（MiniMax-M2.7），不支持原生 Embeddings API
 - **Vercel 环境无需 ws polyfill**：Vercel Serverless 原生支持 WebSocket，`knowledge-admin.ts` 中不使用 `import ws from 'ws'`（本地 Node.js 18 开发如遇 Realtime WebSocket 问题可临时添加）
@@ -286,6 +286,12 @@ Consulting/
 - [match_documents.sql](supabase/migrations/match_documents.sql) — pgvector向量匹配函数定义
 
 ## 更新日志
+
+### 2026-05-11
+
+- **RAG 嵌入生成 401 修复**：`generateEmbedding` 调用 Supabase Edge Function 时使用了 anon key，导致 401 未授权 → embedding 降级为全零向量 → 向量检索无法命中。修复：`route.ts` 和 `knowledge-admin.ts` 中的 `generateEmbedding` 统一改用 `service_role` key 调用 Edge Function，确保嵌入向量正常生成
+- **pnpm standalone 部署方案**：添加 `.npmrc`（`node-linker=hoisted`）使 pnpm 生成平铺 node_modules，解决 standalone 构建跨机器部署时 symlink 丢失问题；新增 `deploy/prepare-deploy.js` 自动化部署准备脚本
+- **部署流程文档化**：生产部署改为 `pnpm build && cd ../deploy && node prepare-deploy.js`，输出目录 `deploy/` 可整体复制到目标机器运行
 
 ### 2026-05-10
 
