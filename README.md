@@ -23,6 +23,7 @@
 - **知识库管理** — 提供中文知识库管理页，可进行上传、搜索、全文预览、批量删除与重复文件处理，支持"返回首页"快捷导航
 - **多格式文档上传与向量化** — 支持 `TXT / MD / CSV / JSON / HTML / XML / PDF / DOCX / DOC`，自动提取文本、分块、生成嵌入向量并存入向量数据库
 - **语义相似度搜索** — 使用pgvector进行向量相似度匹配，召回最相关的政策片段
+- **附加网络搜索** — 用户可勾选"附加网络信息搜索"，通过 MiniMax Token Plan MCP 网络搜索 API 补充互联网信息；回答中严格区分政策知识库信息与网络搜索信息，避免误导
 - **流式对话** — 基于Vercel AI SDK实现流式响应，实时生成回答
 - **用户认证** — 基于Supabase Auth的完整用户认证系统（支持GitHub OAuth），含密码修改功能
 - **聊天历史** — 对话记录持久化存储，支持历史会话管理（侧边栏弹出面板含遮罩层，z-index 高于顶部导航，视觉清晰无重叠）
@@ -290,6 +291,7 @@ Consulting/
 ### 2026-05-11
 
 - **RAG 嵌入生成 401 修复**：`generateEmbedding` 调用 Supabase Edge Function 时使用了 anon key，导致 401 未授权 → embedding 降级为全零向量 → 向量检索无法命中。修复：`route.ts` 和 `knowledge-admin.ts` 中的 `generateEmbedding` 统一改用 `service_role` key 调用 Edge Function，确保嵌入向量正常生成
+- **附加网络搜索功能**：聊天输入区新增"附加网络信息搜索"勾选框（默认关闭），勾选后通过 MiniMax Token Plan MCP 网络搜索 API（`POST /v1/coding_plan/search`）获取互联网信息并附加到 LLM 上下文；系统提示词要求严格区分政策知识库信息（权威确认）与网络搜索信息（仅供参考），确保回答严谨性
 - **pnpm standalone 部署方案**：添加 `.npmrc`（`node-linker=hoisted`）使 pnpm 生成平铺 node_modules，解决 standalone 构建跨机器部署时 symlink 丢失问题；新增 `deploy/prepare-deploy.js` 自动化部署准备脚本
 - **部署流程文档化**：生产部署改为 `pnpm build && cd ../deploy && node prepare-deploy.js`，输出目录 `deploy/` 可整体复制到目标机器运行
 

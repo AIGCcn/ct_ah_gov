@@ -17,13 +17,17 @@ export interface PromptProps
   extends Pick<UseChatHelpers, 'input' | 'setInput'> {
   onSubmit: (value: string) => Promise<void>
   isLoading: boolean
+  webSearchEnabled: boolean
+  setWebSearchEnabled: (enabled: boolean) => void
 }
 
 export function PromptForm({
   onSubmit,
   input,
   setInput,
-  isLoading
+  isLoading,
+  webSearchEnabled,
+  setWebSearchEnabled
 }: PromptProps) {
   const { formRef, onKeyDown } = useEnterSubmit()
   const inputRef = React.useRef<HTMLTextAreaElement>(null)
@@ -88,6 +92,17 @@ export function PromptForm({
             <TooltipContent>发送消息</TooltipContent>
           </Tooltip>
         </div>
+      </div>
+      <div className="flex items-center gap-2 pt-2">
+        <label className="flex cursor-pointer items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground select-none">
+          <input
+            type="checkbox"
+            checked={webSearchEnabled}
+            onChange={e => setWebSearchEnabled(e.target.checked)}
+            className="h-3.5 w-3.5 rounded border-muted-foreground/40 accent-primary"
+          />
+          附加网络信息搜索
+        </label>
       </div>
     </form>
   )

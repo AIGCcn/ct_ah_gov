@@ -162,8 +162,64 @@ function truncateContext(docs: any[]): string {
   return chunks.join('\n\n');
 }
 
+/**
+ * Call MiniMax Token Plan web search API
+ * Endpoint: POST https://api.minimaxi.com/v1/coding_plan/search
+ */
+async function webSearch(query: string): Promise<string> {
+  const apiKey = process.env.Model_API_KEY!
+  const apiHost = 'https://api.minimaxi.com'
+
+  try {
+    const response = await fetch(`${apiHost}/v1/coding_plan/search`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+        'MM-API-Source': 'Minimax-MCP'
+      },
+      body: JSON.stringify({ q: query })
+    })
+
+    if (!response.ok) {
+      console.error(`[WebSearch] HTTP ${response.status}: ${response.statusText}`)
+      return ''
+    }
+
+    const data = await response.json()
+    const baseResp = data.base_resp || {}
+    if (baseResp.status_code !== 0) {
+      console.error(`[WebSearch] API error: ${baseResp.status_msg}`)
+      return ''
+    }
+
+    // Format search results
+    const organic = data.organic || []
+    if (organic.length === 0) {
+      return '网络搜索未找到相关结果。'
+    }
+
+    const formatted = organic
+      .slice(0, 6) // Max 6 results
+      .map((item: { title?: string; snippet?: string; link?: string; date?: string }, i: number) => {
+        const parts = [`${i + 1}. `]
+        if (item.title) parts.push(`**${item.title}**`)
+        if (item.date) parts.push(` (${item.date})`)
+        if (item.snippet) parts.push(`\n   ${item.snippet}`)
+        if (item.link) parts.push(`\n   来源: ${item.link}`)
+        return parts.join('')
+      })
+      .join('\n\n')
+
+    return formatted
+  } catch (error) {
+    console.error('[WebSearch] Error:', error)
+    return ''
+  }
+}
+
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  const { messages, webSearch: webSearchEnabled } = await req.json();
   const lastMessage = messages[messages.length - 1].content;
 
   // 1. 查询相似文档（RAG）via Supabase gte-small (384-dim)
@@ -196,20 +252,43 @@ export async function POST(req: Request) {
     `[RAG] context 长度 ${context.length} 字符（上限 ${RAG_CONFIG.maxContextChars}）`
   );
 
-  // 4. 流式返回 — MiniMax-M2.7 via Anthropic-compatible endpoint
+  // 4. 网络搜索（可选）
+  let webSearchContext = ''
+  if (webSearchEnabled) {
+    console.log('[WebSearch] 用户启用网络搜索，正在查询…')
+    webSearchContext = await webSearch(lastMessage)
+    console.log(`[WebSearch] 结果长度 ${webSearchContext.length} 字符`)
+  }
+
+  // 5. 构建系统提示词
+  const hasKnowledge = context.trim().length > 0
+  const hasWebResults = webSearchContext.trim().length > 0
+
+  let systemPrompt = `你是安徽省广电文旅政策咨询专业智能体。关键规则：
+1. 回答时明确标注信息来源的类型和具体文件名，严格区分以下两种信息：
+   - **政策知识库信息**（经过确认的权威政策内容）：使用"根据《xxx》、《xxx》的通知"格式引用，标注"以上信息来自政策知识库"。
+   - **网络搜索信息**（未经确认的互联网公开信息）：使用"据网络搜索结果"格式引用，明确标注"以上信息来自网络搜索，仅供参考，请以官方发布为准"，提醒用户该信息未经官方确认。
+2. 如果用户没有字数要求，输出内容不要超过800字，问题简单的可以少到100字左右。
+3. 如果政策知识库和网络搜索中都没有相关信息，请明确说明"根据现有资料无法回答"并给出注明AI生成的暖心建议，不要编造内容。
+`
+
+  if (hasKnowledge) {
+    systemPrompt += `\n---政策知识库资料开始---\n${context}\n---政策知识库资料结束---`
+  } else {
+    systemPrompt += '\n政策知识库中未找到相关资料。'
+  }
+
+  if (hasWebResults) {
+    systemPrompt += `\n\n---网络搜索资料开始---\n${webSearchContext}\n---网络搜索资料结束---`
+  }
+
+  // 6. 流式返回 — MiniMax-M2.7 via Anthropic-compatible endpoint
   const result = await streamText({
     model: minimax('MiniMax-M2.7'),
     messages: [
       {
         role: 'system',
-        content: `你是安徽省广电文旅政策咨询专业智能体，只根据以下资料回答。关键规则：
-1. 回答时明确标注信息出自哪个具体的政策文件的AI生成，使用"根据《xxx》、《xxx》的通知"的格式引用，如果参考资料来自多个政策文件，分别标注每个信息的来源文件名。
-2. 如果用户没有字数要求，输出内容不要超过800字，问题简单的可以少到100字左右。
-3. 如果资料中没有相关信息，请明确说明"根据现有资料无法回答"并给出注明AI生成的暧心建议，不要编造内容。
-
----参考资料开始---
-${context}
----参考资料结束---`
+        content: systemPrompt
       },
       ...messages
     ],

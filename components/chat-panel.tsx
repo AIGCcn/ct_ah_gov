@@ -18,6 +18,8 @@ export interface ChatPanelProps
     | 'setInput'
   > {
   id?: string
+  webSearchEnabled: boolean
+  setWebSearchEnabled: (enabled: boolean) => void
 }
 
 export function ChatPanel({
@@ -28,7 +30,9 @@ export function ChatPanel({
   reload,
   input,
   setInput,
-  messages
+  messages,
+  webSearchEnabled,
+  setWebSearchEnabled
 }: ChatPanelProps) {
   return (
     <div className="fixed inset-x-0 bottom-0 bg-gradient-to-b from-muted/60 from-10% to-muted/95 to-50%">
@@ -69,6 +73,8 @@ export function ChatPanel({
             input={input}
             setInput={setInput}
             isLoading={isLoading}
+            webSearchEnabled={webSearchEnabled}
+            setWebSearchEnabled={setWebSearchEnabled}
           />
           <FooterText className="hidden sm:block" />
         </div>

@@ -34,13 +34,15 @@ export function Chat({ id, initialMessages, className }: ChatProps) {
   )
   const [previewTokenDialog, setPreviewTokenDialog] = useState(IS_PREVIEW)
   const [previewTokenInput, setPreviewTokenInput] = useState(previewToken ?? '')
+  const [webSearchEnabled, setWebSearchEnabled] = useState(false)
   const { messages, append, reload, stop, isLoading, input, setInput } =
     useChat({
       initialMessages,
       id,
       body: {
         id,
-        previewToken
+        previewToken,
+        webSearch: webSearchEnabled
       },
       onResponse(response) {
         if (response.status === 401) {
@@ -69,6 +71,8 @@ export function Chat({ id, initialMessages, className }: ChatProps) {
         messages={messages}
         input={input}
         setInput={setInput}
+        webSearchEnabled={webSearchEnabled}
+        setWebSearchEnabled={setWebSearchEnabled}
       />
 
       <Dialog open={previewTokenDialog} onOpenChange={setPreviewTokenDialog}>
