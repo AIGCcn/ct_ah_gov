@@ -46,7 +46,7 @@ export async function saveChat({
         id: chat.id,
         payload: chat as any,
         user_id: session.user.id
-      })
+      } as any)
       .throwOnError()
 
     revalidatePath('/')
