@@ -39,6 +39,29 @@ export function LoginForm({
       email,
       password
     })
+    // 被禁用账号的错误消息处理
+    if (error) {
+      const msg = error.message || ''
+      if (msg.includes('Invalid login credentials') || msg.includes('Email not confirmed')) {
+        // Supabase 对被禁用账号也返回 Invalid login credentials
+        // 尝试检查是否被禁用
+        try {
+          const checkRes = await fetch('/api/admin/check-banned', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+          })
+          if (checkRes.ok) {
+            const checkData = await checkRes.json()
+            if (checkData.banned) {
+              return new Error('您的账号已被管理员禁用，如有疑问请联系管理员')
+            }
+          }
+        } catch {
+          // 检查失败，返回原始错误
+        }
+      }
+    }
     return error
   }
 

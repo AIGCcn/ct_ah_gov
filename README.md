@@ -21,11 +21,12 @@
 - **上下文截断** — 单条文档限长1500字符，总context限长6000字符，防止无关内容溢出大模型窗口
 - **来源标注** — 每条检索文档自动标注政策文件名，AI回答时引用具体政策来源
 - **知识库管理** — 提供中文知识库管理页，可进行上传、搜索、全文预览、批量删除与重复文件处理，支持"返回首页"快捷导航
+- **用户账号管理** — 知识库后台新增"用户管理"Tab，支持查看所有注册用户、重置密码（生成临时密码）、禁用/启用账号，被禁用账号登录时显示对应提示
 - **多格式文档上传与向量化** — 支持 `TXT / MD / CSV / JSON / HTML / XML / PDF / DOCX / DOC`，自动提取文本、分块、生成嵌入向量并存入向量数据库
 - **语义相似度搜索** — 使用pgvector进行向量相似度匹配，召回最相关的政策片段
 - **附加网络搜索** — 用户可勾选"附加网络信息搜索"，通过 MiniMax Token Plan MCP 网络搜索 API 补充互联网信息；回答中严格区分政策知识库信息与网络搜索信息，避免误导
 - **流式对话** — 基于Vercel AI SDK实现流式响应，实时生成回答
-- **用户认证** — 基于Supabase Auth的完整用户认证系统（支持GitHub OAuth），含密码修改功能
+- **用户认证** — 基于Supabase Auth的完整用户认证系统（支持GitHub OAuth），含密码修改与昵称修改功能
 - **聊天历史** — 对话记录持久化存储，支持历史会话管理（AI 回复完成后自动保存到 Supabase，首页新对话自动跳转 `/chat/{id}` 持久化 URL）
 - **深色模式** — 支持亮色/暗色主题切换
 - **响应式设计** — 适配桌面端与移动端
@@ -39,7 +40,7 @@
 | 前端框架 | [Next.js 13](https://nextjs.org) (App Router) |
 | AI SDK | [Vercel AI SDK](https://sdk.vercel.ai/docs) v3 + `@ai-sdk/anthropic` |
 | 大语言模型 | [MiniMax](https://api.minimaxi.com) `MiniMax-M2.7`（Anthropic 兼容端点） |
-| 嵌入模型 | [Supabase gte-small](https://supabase.com/docs/guides/ai) (384维，免费) |
+| 嵌入模型 | [Supabase gte-small](https://supabase.com/docs/guides/ai) (384维) |
 | 数据库 | [Supabase Postgres](https://supabase.com) + [pgvector](https://github.com/pgvector/pgvector) |
 | 认证 | [Supabase Auth](https://supabase.com/auth) |
 | UI组件 | [shadcn/ui](https://ui.shadcn.com) + [Radix UI](https://radix-ui.com) |
@@ -287,6 +288,15 @@ Consulting/
 - [match_documents.sql](supabase/migrations/match_documents.sql) — pgvector向量匹配函数定义
 
 ## 更新日志
+
+### 2026-05-17
+
+- **用户账号管理**：知识库管理后台新增"用户管理"Tab，管理员可查看所有注册用户、重置密码（生成临时密码）、禁用/启用账号。被禁用的账号尝试登录时会显示"您的账号已被管理员禁用"提示
+  - 新增 `/api/admin/users` API（GET 列表 / PATCH 重置密码/禁用/启用）
+  - 新增 `/api/admin/check-banned` API（登录失败时检查是否被禁用）
+  - `knowledge-dashboard.tsx` 新增 Tab 切换和用户管理面板
+- **用户资料修改**：用户菜单新增"用户资料"选项，支持修改显示昵称（更新 `user_metadata.name`），修改后即时生效
+  - `user-menu.tsx` 新增昵称修改 Dialog
 
 ### 2026-05-12
 

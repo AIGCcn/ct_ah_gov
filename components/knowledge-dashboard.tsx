@@ -13,7 +13,12 @@ import {
   Search,
   ShieldCheck,
   Trash2,
-  Upload
+  Upload,
+  Users,
+  UserCog,
+  Ban,
+  CheckCircle,
+  KeyRound
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -88,6 +93,17 @@ export function KnowledgeDashboard({
   const [previewFile, setPreviewFile] = useState<KnowledgeFileContent | null>(null)
   const [previewOpen, setPreviewOpen] = useState(false)
   const [isPreviewLoading, setIsPreviewLoading] = useState(false)
+
+  // 用户管理状态
+  const [activeTab, setActiveTab] = useState<'knowledge' | 'users'>('knowledge')
+  const [users, setUsers] = useState<Array<{
+    id: string; email: string; created_at: string;
+    last_sign_in_at: string | null; banned: boolean;
+    name: string; avatar_url: string
+  }>>([])
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false)
+  const [isUserActionLoading, setIsUserActionLoading] = useState<string | null>(null)
+  const [tempPasswordResult, setTempPasswordResult] = useState<{ email: string; password: string } | null>(null)
 
   const stats = useMemo(() => {
     const totalFiles = files.length
@@ -451,6 +467,65 @@ export function KnowledgeDashboard({
     setSelectedFileKeys(checked ? files.map(file => file.fileKey) : [])
   }
 
+  // ── 用户管理功能 ────────────────────────────────────────────
+  async function loadUsers() {
+    setIsLoadingUsers(true)
+    try {
+      const res = await fetch('/api/admin/users', { method: 'GET' })
+      const data = await safeResponseJson<{ users?: any[]; error?: string }>(res)
+      if (!res.ok) throw new Error(data.error || '获取用户列表失败')
+      setUsers(data.users || [])
+    } catch (err: any) {
+      toast.error(err.message || '获取用户列表失败')
+    } finally {
+      setIsLoadingUsers(false)
+    }
+  }
+
+  async function handleResetPassword(userId: string, email: string) {
+    if (!window.confirm(`确认重置用户 ${email} 的密码？将生成临时密码。`)) return
+    setIsUserActionLoading(userId)
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, action: 'reset-password' })
+      })
+      const data = await safeResponseJson<{ success?: boolean; tempPassword?: string; error?: string }>(res)
+      if (!res.ok) throw new Error(data.error || '重置密码失败')
+      setTempPasswordResult({ email, password: data.tempPassword || '' })
+      toast.success(`已为 ${email} 重置密码`)
+    } catch (err: any) {
+      toast.error(err.message || '重置密码失败')
+    } finally {
+      setIsUserActionLoading(null)
+    }
+  }
+
+  async function handleToggleBan(userId: string, email: string, currentlyBanned: boolean) {
+    const action = currentlyBanned ? 'unban' : 'ban'
+    const msg = currentlyBanned
+      ? `确认启用用户 ${email}？`
+      : `确认禁用用户 ${email}？禁用后该用户将无法登录。`
+    if (!window.confirm(msg)) return
+    setIsUserActionLoading(userId)
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, action })
+      })
+      const data = await safeResponseJson<{ success?: boolean; error?: string }>(res)
+      if (!res.ok) throw new Error(data.error || '操作失败')
+      toast.success(currentlyBanned ? `已启用 ${email}` : `已禁用 ${email}`)
+      await loadUsers()
+    } catch (err: any) {
+      toast.error(err.message || '操作失败')
+    } finally {
+      setIsUserActionLoading(null)
+    }
+  }
+
   if (!authorized) {
     return (
       <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col items-center px-4 py-10">
@@ -512,7 +587,7 @@ export function KnowledgeDashboard({
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-8">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">知识库管理</h2>
+        <h2 className="text-xl font-semibold">管理后台</h2>
         <Link
           href="/"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -521,6 +596,167 @@ export function KnowledgeDashboard({
           返回首页
         </Link>
       </div>
+
+      {/* Tab 切换 */}
+      <div className="flex gap-2 border-b border-border pb-0">
+        <button
+          onClick={() => { setActiveTab('knowledge'); }}
+          className={`inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+            activeTab === 'knowledge'
+              ? 'border-primary text-foreground'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <FileSearch className="h-4 w-4" />
+          知识库管理
+        </button>
+        <button
+          onClick={() => { setActiveTab('users'); loadUsers(); }}
+          className={`inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+            activeTab === 'users'
+              ? 'border-primary text-foreground'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <Users className="h-4 w-4" />
+          用户管理
+        </button>
+      </div>
+
+      {/* 用户管理面板 */}
+      {activeTab === 'users' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <UserCog className="h-5 w-5" />
+              注册账号管理
+            </CardTitle>
+            <CardDescription>
+              查看所有注册用户，支持重置密码、禁用/启用账号。被禁用的账号登录时会收到提示。
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isLoadingUsers}
+                onClick={loadUsers}
+              >
+                {isLoadingUsers ? (
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" />加载中...</>
+                ) : (
+                  <><RefreshCcw className="mr-2 h-4 w-4" />刷新列表</>
+                )}
+              </Button>
+            </div>
+
+            {/* 临时密码提示 */}
+            {tempPasswordResult && (
+              <div className="rounded-lg border border-green-500/30 bg-green-500/10 p-4 text-sm">
+                <div className="font-medium text-green-700 dark:text-green-400">
+                  密码已重置成功
+                </div>
+                <div className="mt-1">
+                  用户 <strong>{tempPasswordResult.email}</strong> 的临时密码：
+                  <code className="ml-1 rounded bg-muted px-2 py-0.5 font-mono">{tempPasswordResult.password}</code>
+                </div>
+                <div className="mt-1 text-muted-foreground">
+                  请将此密码发送给用户，用户登录后应尽快修改密码。
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="mt-2"
+                  onClick={() => setTempPasswordResult(null)}
+                >
+                  关闭
+                </Button>
+              </div>
+            )}
+
+            {isLoadingUsers ? (
+              <div className="flex items-center text-sm text-muted-foreground py-8">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />正在加载用户列表...
+              </div>
+            ) : users.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-border bg-muted/50 p-6 text-sm text-muted-foreground">
+                暂无注册用户，或尚未加载用户列表。点击"刷新列表"获取。
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {users.map(user => (
+                  <div
+                    key={user.id}
+                    className={`rounded-xl border p-4 ${user.banned ? 'border-red-300 bg-red-50/50 dark:border-red-800 dark:bg-red-950/20' : 'border-border/70 bg-background/70'}`}
+                  >
+                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-base font-medium">
+                            {user.name || user.email?.split('@')[0]}
+                          </span>
+                          {user.banned ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/40 dark:text-red-400">
+                              <Ban className="h-3 w-3" />已禁用
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/40 dark:text-green-400">
+                              <CheckCircle className="h-3 w-3" />正常
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-sm text-muted-foreground">{user.email}</div>
+                        <div className="text-xs text-muted-foreground">
+                          注册时间 {formatDateTime(user.created_at)}
+                          {user.last_sign_in_at && ` · 最近登录 ${formatDateTime(user.last_sign_in_at)}`}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={isUserActionLoading === user.id}
+                          onClick={() => handleResetPassword(user.id, user.email)}
+                        >
+                          {isUserActionLoading === user.id ? (
+                            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                          ) : (
+                            <KeyRound className="mr-1 h-3 w-3" />
+                          )}
+                          重置密码
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={user.banned ? 'default' : 'destructive'}
+                          size="sm"
+                          disabled={isUserActionLoading === user.id}
+                          onClick={() => handleToggleBan(user.id, user.email, user.banned)}
+                        >
+                          {isUserActionLoading === user.id ? (
+                            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                          ) : user.banned ? (
+                            <CheckCircle className="mr-1 h-3 w-3" />
+                          ) : (
+                            <Ban className="mr-1 h-3 w-3" />
+                          )}
+                          {user.banned ? '启用' : '禁用'}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 知识库管理面板 */}
+      {activeTab === 'knowledge' && (
+      <>
       <div className="grid gap-4 md:grid-cols-3">
         <Card size="sm">
           <CardHeader>
@@ -853,6 +1089,8 @@ export function KnowledgeDashboard({
           </div>
         </DialogContent>
       </Dialog>
+      </>
+      )}
     </div>
   )
 }

@@ -52,6 +52,11 @@ export function UserMenu({ user }: UserMenuProps) {
   const [newPassword, setNewPassword] = React.useState('')
   const [confirmPassword, setConfirmPassword] = React.useState('')
 
+  // 用户资料状态
+  const [profileDialogOpen, setProfileDialogOpen] = React.useState(false)
+  const [isSavingProfile, setIsSavingProfile] = React.useState(false)
+  const [nickname, setNickname] = React.useState(user?.user_metadata?.name || '')
+
   const handleChangePassword = async () => {
     if (!newPassword || newPassword.length < 6) {
       toast.error('密码长度不能少于6位')
@@ -76,6 +81,30 @@ export function UserMenu({ user }: UserMenuProps) {
       toast.error(err.message || '密码修改失败')
     } finally {
       setIsChangingPassword(false)
+    }
+  }
+
+  const handleSaveProfile = async () => {
+    if (!nickname.trim()) {
+      toast.error('昵称不能为空')
+      return
+    }
+    setIsSavingProfile(true)
+    try {
+      const { error } = await supabase.auth.updateUser({
+        data: { name: nickname.trim() }
+      })
+      if (error) {
+        toast.error(error.message)
+      } else {
+        toast.success('昵称修改成功')
+        setProfileDialogOpen(false)
+        router.refresh()
+      }
+    } catch (err: any) {
+      toast.error(err.message || '昵称修改失败')
+    } finally {
+      setIsSavingProfile(false)
     }
   }
 
@@ -112,6 +141,49 @@ export function UserMenu({ user }: UserMenuProps) {
             <div className="text-xs text-zinc-500">{user?.email}</div>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
+          <Dialog open={profileDialogOpen} onOpenChange={(open) => { setProfileDialogOpen(open); if (open) setNickname(user?.user_metadata?.name || ''); }}>
+            <DialogTrigger asChild>
+              <DropdownMenuItem
+                className="text-xs"
+                onSelect={(e: Event) => e.preventDefault()}
+              >
+                用户资料
+              </DropdownMenuItem>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[400px]">
+              <DialogHeader>
+                <DialogTitle>用户资料</DialogTitle>
+                <DialogDescription>
+                  修改您的显示昵称，其他用户将看到此名称。
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="nickname" className="text-right">
+                    昵称
+                  </Label>
+                  <Input
+                    id="nickname"
+                    value={nickname}
+                    onChange={e => setNickname(e.target.value)}
+                    className="col-span-3"
+                    placeholder="输入您的昵称"
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  onClick={handleSaveProfile}
+                  disabled={isSavingProfile}
+                >
+                  {isSavingProfile && (
+                    <IconSpinner className="mr-2 animate-spin" />
+                  )}
+                  保存
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <DropdownMenuItem
