@@ -1,7 +1,7 @@
+import Image from 'next/image'
 import { UseChatHelpers } from 'ai/react'
 
 import { Button } from '@/components/ui/button'
-import { ExternalLink } from '@/components/external-link'
 import { IconArrowRight } from '@/components/ui/icons'
 
 const exampleMessages = [
@@ -22,17 +22,27 @@ const exampleMessages = [
 export function EmptyScreen({ setInput }: Pick<UseChatHelpers, 'setInput'>) {
   return (
     <div className="mx-auto max-w-2xl px-4">
-      <div className="rounded-lg border bg-background p-8">
-        <h1 className="mb-2 text-lg font-semibold">
-          欢迎使用视听政策百问
+      <div className="flex flex-col items-center pt-8 pb-6">
+        <Image
+          src="/logo.png"
+          alt="视听政策百问"
+          width={96}
+          height={96}
+          className="h-24 w-24 drop-shadow-lg"
+          priority
+        />
+        <h1 className="mt-4 text-2xl font-bold tracking-tight">
+          视听政策百问
         </h1>
-        <p className="mb-2 leading-normal text-muted-foreground">
-          由安徽广电AIGC实验室与合肥生成式人工智能共同开发。
+        <p className="mt-1 text-sm text-muted-foreground">
+          由安徽广电AIGC实验室与合肥生成式人工智能共同开发
         </p>
-        <p className="leading-normal text-muted-foreground">
+      </div>
+      <div className="rounded-lg border bg-background p-6">
+        <p className="mb-3 text-sm leading-normal text-muted-foreground">
           您可以在此进行对话，或尝试以下示例：
         </p>
-        <div className="mt-4 flex flex-col items-start space-y-2">
+        <div className="flex flex-col items-start space-y-2">
           {exampleMessages.map((message, index) => (
             <Button
               key={index}
