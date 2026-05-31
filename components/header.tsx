@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 
 import { cn } from '@/lib/utils'
 import { clearChats } from '@/app/actions'
@@ -12,7 +13,6 @@ import {
   IconGitHub,
   IconSeparator
 } from '@/components/ui/icons'
-import { TentTree } from 'lucide-react'
 import { SidebarFooter } from '@/components/sidebar-footer'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { ClearHistory } from '@/components/clear-history'
@@ -27,6 +27,15 @@ export function Header({ session }: HeaderProps) {
   return (
     <header className="sticky top-0 z-50 flex h-16 w-full shrink-0 items-center justify-between border-b bg-gradient-to-b from-background/10 via-background/50 to-background/80 px-4 backdrop-blur-xl">
       <div className="flex items-center">
+        <Link href="/" className="flex items-center">
+          <Image
+            src="/logo.png"
+            alt="视听政策百问"
+            width={32}
+            height={32}
+            className="mr-2 h-8 w-8"
+          />
+        </Link>
         {session?.user ? (
           <Sidebar>
             <React.Suspense fallback={<div className="flex-1 overflow-auto" />}>
@@ -38,11 +47,7 @@ export function Header({ session }: HeaderProps) {
               <ClearHistory clearChats={clearChats} />
             </SidebarFooter>
           </Sidebar>
-        ) : (
-          <Link href="/" target="_blank" rel="nofollow">
-            <TentTree className="mr-2 h-6 w-6" />
-          </Link>
-        )}
+        ) : null}
         <div className="flex items-center">
           <IconSeparator className="h-6 w-6 text-muted-foreground/50" />
           {session?.user ? (
@@ -68,7 +73,7 @@ export function Header({ session }: HeaderProps) {
           <span className="ml-2 hidden md:flex">GitHub</span>
         </a>
         <div className={cn(buttonVariants({ variant: 'outline' }), "cursor-default")}>
-          <span className="hidden sm:block">安徽广电文旅政策咨询</span>
+          <span className="hidden sm:block">视听政策百问</span>
         </div>
       </div>
     </header>

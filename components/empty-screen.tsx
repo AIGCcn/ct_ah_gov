@@ -24,7 +24,7 @@ export function EmptyScreen({ setInput }: Pick<UseChatHelpers, 'setInput'>) {
     <div className="mx-auto max-w-2xl px-4">
       <div className="rounded-lg border bg-background p-8">
         <h1 className="mb-2 text-lg font-semibold">
-          欢迎使用安徽广电文旅政策咨询智能体
+          欢迎使用视听政策百问
         </h1>
         <p className="mb-2 leading-normal text-muted-foreground">
           由安徽广电AIGC实验室与合肥生成式人工智能共同开发。

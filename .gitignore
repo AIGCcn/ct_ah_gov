@@ -40,4 +40,5 @@ yarn-error.log*
 # local test/debug artifacts
 *.png
 !public/**
+!app/icon.png
 knowledge.yaml

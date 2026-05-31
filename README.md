@@ -1,7 +1,7 @@
-<h1 align="center">安徽广电文旅政策咨询智能体</h1>
+<h1 align="center">视听政策百问</h1>
 
 <p align="center">
-  基于RAG架构的专业政策咨询AI智能体，由安徽广电AIGC实验室与合肥生成式人工智能共同开发。
+  基于RAG架构的专业视听政策咨询AI智能体，由安徽广电AIGC实验室与合肥生成式人工智能共同开发。
 </p>
 
 <p align="center">
@@ -289,40 +289,36 @@ Consulting/
 
 ## 更新日志
 
+### 2026-05-31
+
+- **品牌升级**：项目更名为"视听政策百问"，新增项目图标（`app/icon.png` + `public/logo.png`），导航栏显示 Logo + 名称
+
 ### 2026-05-17
 
-- **用户账号管理**：知识库管理后台新增"用户管理"Tab，管理员可查看所有注册用户、重置密码（生成临时密码）、禁用/启用账号。被禁用的账号尝试登录时会显示"您的账号已被管理员禁用"提示
-  - 新增 `/api/admin/users` API（GET 列表 / PATCH 重置密码/禁用/启用）
-  - 新增 `/api/admin/check-banned` API（登录失败时检查是否被禁用）
-  - `knowledge-dashboard.tsx` 新增 Tab 切换和用户管理面板
-- **用户资料修改**：用户菜单新增"用户资料"选项，支持修改显示昵称（更新 `user_metadata.name`），修改后即时生效
-  - `user-menu.tsx` 新增昵称修改 Dialog
+- **用户账号管理**：知识库后台新增"用户管理"Tab（查看用户、重置密码、禁用/启用账号）
+- **用户资料修改**：用户菜单新增"用户资料"选项，支持修改显示昵称
 
 ### 2026-05-12
 
-- **聊天历史记录修复**：之前聊天记录不会保存到数据库，Chat History 面板始终为空。根因：写入路径完全缺失——没有 `saveChat` action、没有 `onFinish` 回调、API route 不提取 chat ID。修复：
-  - 新增 `saveChat` server action（`app/actions.ts`），在 `onFinish` 回调中调用，将完整对话（id、标题、消息、用户 ID）upsert 到 Supabase `chats` 表
-  - 在 `components/chat.tsx` 的 `useChat` hook 中添加 `onFinish` 回调，AI 回复完成后自动保存聊天记录，并将首页新对话导航到 `/chat/{id}` 持久化 URL
-  - 修复 `clearChats` 不按用户过滤的 bug（之前会删除所有用户的聊天记录）
+- **聊天历史记录修复**：补全写入路径（saveChat action + onFinish 回调），修复 clearChats 不按用户过滤的 bug
 
 ### 2026-05-11
 
-- **RAG 嵌入生成 401 修复**：`generateEmbedding` 调用 Supabase Edge Function 时使用了 anon key，导致 401 未授权 → embedding 降级为全零向量 → 向量检索无法命中。修复：`route.ts` 和 `knowledge-admin.ts` 中的 `generateEmbedding` 统一改用 `service_role` key 调用 Edge Function，确保嵌入向量正常生成
-- **附加网络搜索功能**：聊天输入区新增"附加网络信息搜索"勾选框（默认关闭），勾选后通过 MiniMax Token Plan MCP 网络搜索 API（`POST /v1/coding_plan/search`）获取互联网信息并附加到 LLM 上下文；系统提示词要求严格区分政策知识库信息（权威确认）与网络搜索信息（仅供参考），确保回答严谨性
-- **pnpm standalone 部署方案**：添加 `.npmrc`（`node-linker=hoisted`）使 pnpm 生成平铺 node_modules，解决 standalone 构建跨机器部署时 symlink 丢失问题；新增 `deploy/prepare-deploy.js` 自动化部署准备脚本
-- **部署流程文档化**：生产部署改为 `pnpm build && cd ../deploy && node prepare-deploy.js`，输出目录 `deploy/` 可整体复制到目标机器运行
+- **RAG 嵌入 401 修复**：generateEmbedding 统一改用 service_role key
+- **附加网络搜索**：聊天输入区新增"附加网络信息搜索"勾选框
+- **pnpm standalone 部署方案**：`.npmrc` + `prepare-deploy.js` 自动化部署
 
 ### 2026-05-10
 
-- **Chat History 侧边栏遮罩层级修复**：将 Sheet 组件（Portal / Overlay / Content）的 `z-index` 从 `z-50` 提升至 `z-[100]`，确保遮罩层完整覆盖顶部导航栏（`sticky z-50`），彻底解决 Chat History 文字与用户图标视觉重叠的问题
-- **聊天回答与输入框重叠修复**：将 ChatPanel 底部渐变背景从 `from-muted/10 to-muted/30` 调整为 `from-muted/60 to-muted/95`，大幅提升渐变区不透明度，避免消息文本透过来与输入框视觉重叠；同时将消息区域底部内边距从 `pb-[200px]` 增加至 `pb-[220px]`
-- **系统提示词更新**：优化 RAG 系统提示词，要求 AI 回答时明确标注信息出自哪个具体政策文件（使用"根据《xxx》、《xxx》的通知"格式引用），简化输出字数要求（无字数要求时不超过 800 字），并在无法回答时给出注明 AI 生成的暖心建议
+- Sheet 遮罩层级 z-[100]、聊天面板渐变透明度修复、系统提示词优化
 
 ### 2026-05-08
 
-- **知识库页"返回首页"按钮**：在 `/knowledge` 页面登录前后均添加了"返回首页"快捷导航（含箭头图标），方便用户随时跳回聊天首页
-- **Chat History 侧边栏遮罩修复**：为 Sheet 弹出面板增加了半透明遮罩层（`bg-black/50`），修复了 Chat History 文字与用户图标视觉重叠的问题；同时优化了面板定位（`inset-y-0 left-0`），确保从左侧滑出的定位精准
-- **聊天回答不显示修复**：MiniMax-M2.7 通过 Anthropic 兼容端点（`api.minimaxi.com/anthropic/v1`）调用时会在流式响应中发送空 error 事件（`3:""`），前端 `@ai-sdk/ui-utils` 的 `processDataProtocolResponse` 遇到 `type="error"` 直接 throw 导致后续文本内容被丢弃。修复方案：在 `route.ts` 中用 `TransformStream` 过滤掉空 error 帧（`3:""`），只保留有实质内容的 error，使 AI 回答正常渲染
+- 知识库"返回首页"按钮、Chat History 遮罩层、MiniMax 空错误帧过滤
+
+### 2026-05-07
+
+- 初始版本：修复 Edge Runtime 兼容性、pdfjs-dist ESM、DOMMatrix、知识库上传、Vercel 部署等核心问题
 
 ## 政策文档
 

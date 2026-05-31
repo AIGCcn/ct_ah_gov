@@ -17,10 +17,10 @@ export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
   title: {
-    default: '安徽广电文旅政策咨询智能体',
-    template: `%s - 安徽广电文旅政策咨询智能体`
+    default: '视听政策百问',
+    template: `%s - 视听政策百问`
   },
-  description: '由安徽广电AIGC实验室与合肥生成式人工智能开发的专业咨询智能体。',
+  description: '基于RAG架构的专业视听政策咨询AI智能体，由安徽广电AIGC实验室与合肥生成式人工智能共同开发。',
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: 'white' },
     { media: '(prefers-color-scheme: dark)', color: 'black' }
