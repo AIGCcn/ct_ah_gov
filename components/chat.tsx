@@ -71,11 +71,19 @@ export function Chat({ id, initialMessages, className }: ChatProps) {
           typeof userMsg?.content === 'string' ? userMsg.content : '新对话'
         const title = content.slice(0, 50)
 
-        saveChat({ id, title, messages: allMessages }).then(() => {
+        saveChat({ id, title, messages: allMessages }).then(result => {
+          if (result && 'error' in result) {
+            console.error('saveChat failed:', result.error)
+            toast.error('保存对话失败: ' + result.error)
+            return
+          }
           // 如果是首页新对话，跳转到 /chat/{id} 使 URL 持久化
           if (window.location.pathname === '/') {
             router.push(`/chat/${id}`)
           }
+        }).catch(err => {
+          console.error('saveChat exception:', err)
+          toast.error('保存对话时出错')
         })
       }
     })

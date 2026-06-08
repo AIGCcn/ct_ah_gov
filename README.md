@@ -1,7 +1,7 @@
 <h1 align="center">视听政策百问</h1>
 
 <p align="center">
-  基于RAG架构的专业视听政策咨询AI智能体，由安徽广电AIGC实验室与合肥生成式人工智能共同开发。
+  基于RAG架构的专业视听政策咨询AI智能体
 </p>
 
 <p align="center">
@@ -288,6 +288,13 @@ Consulting/
 - [match_documents.sql](supabase/migrations/match_documents.sql) — pgvector向量匹配函数定义
 
 ## 更新日志
+
+### 2026-06-09
+
+- **图标修复**：将 Next.js Image 组件替换为原生 `<img>` 标签，修复 standalone 部署模式下图标不显示的问题
+- **登录/注册页优化**：登录页和注册页新增 Logo 图标展示
+- **首页文字精简**：移除底部版权信息中的开发方署名，简化页面描述
+- **404 跳转修复**：优化 `chat/[id]/page.tsx` 的错误处理，当聊天记录尚未写入时重定向到首页而非 404
 
 ### 2026-05-31
 

@@ -1,4 +1,3 @@
-import Image from 'next/image'
 import { UseChatHelpers } from 'ai/react'
 
 import { Button } from '@/components/ui/button'
@@ -23,20 +22,11 @@ export function EmptyScreen({ setInput }: Pick<UseChatHelpers, 'setInput'>) {
   return (
     <div className="mx-auto max-w-2xl px-4">
       <div className="flex flex-col items-center pt-8 pb-6">
-        <Image
+        <img
           src="/logo.png"
           alt="视听政策百问"
-          width={96}
-          height={96}
           className="h-24 w-24 drop-shadow-lg"
-          priority
         />
-        <h1 className="mt-4 text-2xl font-bold tracking-tight">
-          视听政策百问
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          由安徽广电AIGC实验室与合肥生成式人工智能共同开发
-        </p>
       </div>
       <div className="rounded-lg border bg-background p-6">
         <p className="mb-3 text-sm leading-normal text-muted-foreground">

@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     default: '视听政策百问',
     template: `%s - 视听政策百问`
   },
-  description: '基于RAG架构的专业视听政策咨询AI智能体，由安徽广电AIGC实验室与合肥生成式人工智能共同开发。',
+  description: '基于RAG架构的专业视听政策咨询AI智能体',
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: 'white' },
     { media: '(prefers-color-scheme: dark)', color: 'black' }

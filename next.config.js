@@ -12,6 +12,7 @@ module.exports = {
     serverComponentsExternalPackages: ['pdfjs-dist', 'pdf-parse', '@napi-rs/canvas']
   },
   images: {
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',
