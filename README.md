@@ -291,7 +291,10 @@ Consulting/
 
 ### 2026-06-09
 
-- **图标修复**：将 Next.js Image 组件替换为原生 `<img>` 标签，修复 standalone 部署模式下图标不显示的问题
+- **图标/Logo 不显示修复**：`middleware.ts` 未排除静态图片路径（`icon.png`、`logo.png` 等），导致未登录用户访问时被 307 重定向到登录页，图标返回 HTML 而非图片。已在 `isPublicPath` 中添加静态图片路径判断
+- **Chat API 500 错误修复**：`api/chat/route.ts` 增加 `messages` 空值校验，空请求返回 400 而非 500 TypeError
+- **部署工具改进**：`prepare-deploy.js` 新增 symlink 解析和 pnpm `.pnpm` 扁平化功能，解决 Windows 下 `EPERM` 和 `MODULE_NOT_FOUND` 错误
+- **图标修复（前置）**：将 Next.js Image 组件替换为原生 `<img>` 标签，修复 standalone 部署模式下图标不显示的问题
 - **登录/注册页优化**：登录页和注册页新增 Logo 图标展示
 - **首页文字精简**：移除底部版权信息中的开发方署名，简化页面描述
 - **404 跳转修复**：优化 `chat/[id]/page.tsx` 的错误处理，当聊天记录尚未写入时重定向到首页而非 404

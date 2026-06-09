@@ -21,7 +21,13 @@ export async function middleware(req: NextRequest) {
   const isPublicPath =
     pathname.startsWith('/sign-in') ||
     pathname.startsWith('/sign-up') ||
-    pathname.startsWith('/knowledge')
+    pathname.startsWith('/knowledge') ||
+    // 静态图片资源（Next.js metadata icon + public 目录图片）
+    // 这些文件被 middleware 拦截会返回 HTML 而非图片，导致图标/Logo 无法显示
+    pathname === '/logo.png' ||
+    pathname === '/icon.png' ||
+    pathname === '/apple-touch-icon.png' ||
+    pathname === '/favicon-16x16.png'
 
   if (!session && !isPublicPath) {
     const redirectUrl = req.nextUrl.clone()

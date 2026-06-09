@@ -219,7 +219,17 @@ async function webSearch(query: string): Promise<string> {
 }
 
 export async function POST(req: Request) {
-  const { messages, webSearch: webSearchEnabled } = await req.json();
+  const body = await req.json();
+  const messages = body.messages || [];
+  const webSearchEnabled = body.webSearch || false;
+
+  if (messages.length === 0) {
+    return new Response(JSON.stringify({ error: 'messages is required and must not be empty' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+
   const lastMessage = messages[messages.length - 1].content;
 
   // 1. 查询相似文档（RAG）via Supabase gte-small (384-dim)
